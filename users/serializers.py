@@ -11,13 +11,53 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ["id", "email", "username", "role"]
 
 class RegisterSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(write_only=True)
+    last_name = serializers.CharField(write_only=True)
+    dob = serializers.DateField(write_only=True)
+    phone = serializers.CharField(write_only=True)
+    department = serializers.CharField(write_only=True)
+    student_id = serializers.CharField(write_only=True, required=False)
+
     class Meta:
         model = User
-        fields = ["email", "username", "password", "role"]
-        extra_kwargs = {"password": {"write_only": True}}
-    
+        fields = [
+            'email', 'username', 'password', 'role',
+            'first_name', 'last_name', 'dob', 'phone', 'department', 'student_id'
+        ]
+        extra_kwargs = {'password': {'write_only': True}}
+
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+        role = validated_data['role']
+        student_id = validated_data.pop('student_id', None)
+        first_name = validated_data.pop('first_name')
+        last_name = validated_data.pop('last_name')
+        dob = validated_data.pop('dob')
+        phone = validated_data.pop('phone')
+        department = validated_data.pop('department')
+
+        user = User.objects.create_user(**validated_data)
+
+        if role == 'teacher':
+            Teacher.objects.create(
+                user=user,
+                first_name=first_name,
+                last_name=last_name,
+                dob=dob,
+                phone=phone,
+                department=department
+            )
+        elif role == 'student':
+            Student.objects.create(
+                user=user,
+                student_id=student_id,
+                first_name=first_name,
+                last_name=last_name,
+                dob=dob,
+                phone=phone,
+                department=department
+            )
+
+        return user
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
