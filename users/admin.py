@@ -4,15 +4,14 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 
 class UserAdmin(BaseUserAdmin):
-    list_display = ("email", "username", "role", "is_active", "is_staff")
+    list_display = ("email", "role", "is_active", "is_staff")
     list_filter = ("role", "is_staff")
     ordering = ("email",)
     search_fields = (
         "email",
-        "username",
     )
     fieldsets = (
-        (None, {"fields": ("email", "password", "username", "role")}),
+        (None, {"fields": ("email", "password", "role")}),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser")}),
         ("Groups", {"fields": ("groups", "user_permissions")}),
     )
