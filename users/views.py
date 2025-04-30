@@ -2,7 +2,7 @@ from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
 
@@ -254,3 +254,17 @@ class GetStudentByUserIdView(APIView):
                 "data": None,
                 "errors": [str(e)]
             }, status=status.HTTP_404_NOT_FOUND)
+
+class UpdateStudentProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = StudentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user.student_profile
+
+class UpdateTeacherProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = TeacherSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user.teacher_profile
