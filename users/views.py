@@ -80,7 +80,21 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         try:
             response = super().post(request, *args, **kwargs)
             email = request.data.get("email")
+            requested_role_num = request.data.get("role")
+
             user = User.objects.get(email=email)
+
+            actual_role_num = ROLE_MAP.get(user.role, -1)
+            if actual_role_num != requested_role_num:
+                return Response(
+                    {
+                        "isSuccess": False,
+                        "message": "Role mismatch. Please choose the correct role.",
+                        "data": None,
+                        "errors": ["Incorrect role selected"],
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
             return Response(
                 {
