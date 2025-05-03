@@ -215,10 +215,12 @@ class GetTeacherByUserIdView(APIView):
             teacher_profile = user.teacher_profile
             serializer = TeacherSerializer(teacher_profile)
 
+            data = transform_teacher_response(serializer.data)
+
             return Response({
                 "isSuccess": True,
                 "message": "Teacher retrieved successfully",
-                "data": serializer.data,
+                "data": data,
                 "errors": []
             }, status=status.HTTP_200_OK)
 
@@ -240,10 +242,12 @@ class GetStudentByUserIdView(APIView):
             student_profile = user.student_profile
             serializer = StudentSerializer(student_profile)
 
+            data = transform_student_response(serializer.data)
+
             return Response({
                 "isSuccess": True,
                 "message": "Student retrieved successfully",
-                "data": serializer.data,
+                "data": data,
                 "errors": []
             }, status=status.HTTP_200_OK)
 
@@ -261,6 +265,21 @@ class UpdateStudentProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user.student_profile
+    
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        data = transform_student_response(serializer.data)
+
+        return Response({
+            "isSuccess": True,
+            "message": "Profile updated successfully",
+            "data": data,
+            "errors": []
+        }, status=status.HTTP_200_OK)
 
 class UpdateTeacherProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = TeacherSerializer
@@ -268,3 +287,56 @@ class UpdateTeacherProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user.teacher_profile
+    
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        data = transform_teacher_response(serializer.data)
+
+        return Response({
+            "isSuccess": True,
+            "message": "Profile updated successfully",
+            "data": data,
+            "errors": []
+        }, status=status.HTTP_200_OK)
+
+def transform_student_response(data):
+    return {
+        "id": data.get("id"),
+        "studentId": data.get("student_id"),
+        "firstName": data.get("first_name"),
+        "lastName": data.get("last_name"),
+        "dateOfBirth": data.get("dob"),
+        "phoneNumber": data.get("phone"),
+        "joinDate": data.get("join_date"),
+        "year": data.get("year"),
+        "section": data.get("section"),
+        "department": data.get("department"),
+        "email": data.get("email"),
+        "role": data.get("role"),
+        "isVerified": data.get("is_verified"),
+        "imageUrl": data.get("imageUrl"),
+        "createdAt": data.get("created_at"),
+        "updatedAt": data.get("updated_at"),
+    }
+
+def transform_teacher_response(data):
+    print(data)
+    return {
+        "id": data.get("id"),
+        "firstName": data.get("first_name"),
+        "lastName": data.get("last_name"),
+        "dateOfBirth": data.get("dob"),
+        "phoneNumber": data.get("phone"),
+        "joinDate": data.get("join_date"),
+        "department": data.get("department"),
+        "email": data.get("email"),
+        "role": data.get("role"),
+        "isVerified": data.get("is_verified"),
+        "imageUrl": data.get("imageUrl"),
+        "createdAt": data.get("created_at"),
+        "updatedAt": data.get("updated_at"),
+    }
