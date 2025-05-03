@@ -4,10 +4,11 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.views import APIView
 
 import random
 
-from .models import User, Otp
+from .models import User, Student, Teacher, Otp
 from .serializers import (
     TeacherSerializer,
     StudentSerializer,
@@ -76,18 +77,36 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
-        response = super().post(request, *args, **kwargs)
         try:
-            user = User.objects.get(email=request.data["email"])
-            if user.role == "student":
-                response.data["user"] = StudentSerializer(user.student_profile).data
-            elif user.role == "teacher":
-                response.data["user"] = TeacherSerializer(user.teacher_profile).data
-            else:
-                response.data["user"] = UserSerializer(user).data
-        except User.DoesNotExist:
-            response.data["user"] = None
-        return response
+            response = super().post(request, *args, **kwargs)
+            email = request.data.get("email")
+            user = User.objects.get(email=email)
+
+            return Response(
+                {
+                    "isSuccess": True,
+                    "message": "Login successful",
+                    "data": {
+                        "id": str(user.id),
+                        "email": user.email,
+                        "role": ROLE_MAP.get(user.role, -1),
+                        "token": response.data.get("access"),
+                    },
+                    "errors": [],
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {
+                    "isSuccess": False,
+                    "message": "Login failed",
+                    "data": None,
+                    "errors": [str(e)],
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 @api_view(["POST"])
@@ -186,3 +205,52 @@ def verify_otp(request):
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+class GetTeacherByUserIdView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id, role="teacher")
+            teacher_profile = user.teacher_profile
+            serializer = TeacherSerializer(teacher_profile)
+
+            return Response({
+                "isSuccess": True,
+                "message": "Teacher retrieved successfully",
+                "data": serializer.data,
+                "errors": []
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "isSuccess": False,
+                "message": "Teacher not found",
+                "data": None,
+                "errors": [str(e)]
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+class GetStudentByUserIdView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id, role="student")
+            student_profile = user.student_profile
+            serializer = StudentSerializer(student_profile)
+
+            return Response({
+                "isSuccess": True,
+                "message": "Student retrieved successfully",
+                "data": serializer.data,
+                "errors": []
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "isSuccess": False,
+                "message": "Student not found",
+                "data": None,
+                "errors": [str(e)]
+            }, status=status.HTTP_404_NOT_FOUND)

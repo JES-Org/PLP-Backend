@@ -26,6 +26,10 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
+        if user.role == "student":
+            Student.objects.create(user=user)
+        elif user.role == "teacher":
+            Teacher.objects.create(user=user)
         return user
 
 
