@@ -87,6 +87,7 @@ class TeacherSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source="user.email", read_only=True)
     role = serializers.SerializerMethodField()
     imageUrl = serializers.ImageField(source="image", read_only=True)
+    id = serializers.IntegerField(source="user.id", read_only=True)
 
     class Meta:
         model = Teacher
