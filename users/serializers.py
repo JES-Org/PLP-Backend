@@ -15,75 +15,17 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    first_name = serializers.CharField(write_only=True, required=False)
-    last_name = serializers.CharField(write_only=True, required=False)
-    dob = serializers.DateField(write_only=True, required=False)
-    phone = serializers.CharField(write_only=True, required=False)
-    department = serializers.CharField(write_only=True, required=False)
-    student_id = serializers.CharField(write_only=True, required=False)
-    year = serializers.IntegerField(write_only=True, required=False)
-    section = serializers.CharField(write_only=True, required=False)
-    image = serializers.ImageField(write_only=True, required=False)
-
     class Meta:
         model = User
         fields = [
             "email",
             "password",
             "role",
-            "first_name",
-            "last_name",
-            "dob",
-            "phone",
-            "department",
-            "student_id",
-            "year",
-            "section",
-            "image",
         ]
         extra_kwargs = {"password": {"write_only": True}}
 
     def create(self, validated_data):
-        role = validated_data["role"]
-
-        # pop all profile fields
-        student_id = validated_data.pop("student_id", None)
-        first_name = validated_data.pop("first_name")
-        last_name = validated_data.pop("last_name")
-        dob = validated_data.pop("dob")
-        phone = validated_data.pop("phone")
-        department = validated_data.pop("department")
-        year = validated_data.pop("year", None)
-        section = validated_data.pop("section", None)
-        image = validated_data.pop("image", None)
-
-        # create user
         user = User.objects.create_user(**validated_data)
-
-        if role == "teacher":
-            Teacher.objects.create(
-                user=user,
-                first_name=first_name,
-                last_name=last_name,
-                dob=dob,
-                phone=phone,
-                department=department,
-                image=image,
-            )
-        elif role == "student":
-            Student.objects.create(
-                user=user,
-                student_id=student_id,
-                first_name=first_name,
-                last_name=last_name,
-                dob=dob,
-                phone=phone,
-                department=department,
-                year=year,
-                section=section,
-                image=image,
-            )
-
         return user
 
 
@@ -102,7 +44,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        token["role"] = user.role
+        token["role"] = ROLE_MAP.get(user.role, -1)
         return token
 
 

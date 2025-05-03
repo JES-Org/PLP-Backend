@@ -13,6 +13,8 @@ from .serializers import (
     CustomTokenObtainPairSerializer,
 )
 
+ROLE_MAP = {"student": 0, "teacher": 1, "admin": 2}
+
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -31,26 +33,39 @@ class RegisterView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        tokens = get_tokens_for_user(user)
+        try:
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save()
+            tokens = get_tokens_for_user(user)
 
-        # return full profile based on role
-        role = user.role
-        if role == "student":
-            profile_serializer = StudentSerializer(user.student_profile)
-        elif role == "teacher":
-            profile_serializer = TeacherSerializer(user.teacher_profile)
-        else:
-            profile_serializer = UserSerializer(user)
+            data = {
+                "id": str(user.id),
+                "email": user.email,
+                "role": ROLE_MAP.get(user.role, -1),
+                "token": tokens["access"],
+                "isVerified": False,  # Adjust if using email verification logic
+            }
 
-        return Response(
-            {
-                "user": profile_serializer.data,
-                "tokens": tokens,
-            },
-            status=status.HTTP_201_CREATED,
-        )
+            return Response(
+                {
+                    "isSuccess": True,
+                    "message": "User registered successfully",
+                    "data": data,
+                    "errors": [],
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        except Exception as e:
+            return Response(
+                {
+                    "isSuccess": False,
+                    "message": "User registration failed",
+                    "data": None,
+                    "errors": [str(e)],
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
