@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
-
+import logging
 import random
 
 from .models import User, Student, Teacher, Otp
@@ -19,6 +19,7 @@ from .serializers import (
 
 ROLE_MAP = {"student": 0, "teacher": 1, "admin": 2}
 ROLE_REVERSE_MAP = {0: "student", 1: "teacher", 2: "admin"}
+logger = logging.getLogger(__name__)
 
 
 def get_tokens_for_user(user):
@@ -80,7 +81,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         try:
             response = super().post(request, *args, **kwargs)
             email = request.data.get("email")
-            user = User.objects.get(email=email)
+            role= request.data.get("role")
+            user = User.objects.get(email=email,role=role)
 
             return Response(
                 {
@@ -260,7 +262,31 @@ class UpdateStudentProfileView(generics.RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        return self.request.user.student_profile
+        user = self.request.user
+        print("data",self.request.data)
+
+        logger.debug(f"Authenticated user: {user}")
+        try:
+            profile = user.student_profile
+            logger.debug(f"Student profile found: {profile}")
+            return profile
+        except Exception as e:
+            logger.error(f"Error retrieving student profile: {e}")
+            raise
+
+    def update(self, request, *args, **kwargs):
+        logger.debug(f"Request data: {request.data}")
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            self.perform_update(serializer)
+            logger.debug(f"Update successful: {serializer.data}")
+            return Response(serializer.data)
+        else:
+            logger.warning(f"Serializer errors: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class UpdateTeacherProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = TeacherSerializer
@@ -268,3 +294,16 @@ class UpdateTeacherProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user.teacher_profile
+    
+    def update(self, request, *args, **kwargs):
+        print("🟢 Incoming data:", request.data)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+
+        if not serializer.is_valid():
+            print("🔴 Serializer errors:", serializer.errors)
+            return Response(serializer.errors, status=400)
+
+        self.perform_update(serializer)
+        return Response(serializer.data)
+

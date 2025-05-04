@@ -11,4 +11,5 @@ urlpatterns = [
     path("student/<str:user_id>/", GetStudentByUserIdView.as_view(), name="get-student-by-user-id"),
     path('student/profile/update/', UpdateStudentProfileView.as_view(), name='update-student-profile'),
     path('teacher/profile/update/', UpdateTeacherProfileView.as_view(), name='update-teacher-profile'),
+  
 ]

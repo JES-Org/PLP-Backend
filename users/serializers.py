@@ -4,6 +4,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import authenticate
 
 from .models import User, Teacher, Student
+from django.conf import settings
 
 ROLE_MAP = {"student": 0, "teacher": 1, "admin": 2}
 
@@ -11,7 +12,7 @@ ROLE_MAP = {"student": 0, "teacher": 1, "admin": 2}
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "email", "role"]
+        fields = ["id", "email", "role","is_active", "is_staff"]
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -51,11 +52,11 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["role"] = ROLE_MAP.get(user.role, -1)
         return token
 
-
 class StudentSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(source="user.email", read_only=True)
+    email = serializers.EmailField(source='user.email', required=False)
     role = serializers.SerializerMethodField()
-    imageUrl = serializers.ImageField(source="image", read_only=True)
+    imageUrl = serializers.SerializerMethodField()
+    image = serializers.ImageField(write_only=True, required=False)
 
     class Meta:
         model = Student
@@ -64,7 +65,7 @@ class StudentSerializer(serializers.ModelSerializer):
             "student_id",
             "first_name",
             "last_name",
-            "email",
+            "email",              # shown in responses and accepted in input
             "dob",
             "phone",
             "join_date",
@@ -72,22 +73,42 @@ class StudentSerializer(serializers.ModelSerializer):
             "section",
             "department",
             "imageUrl",
+            "image",
             "role",
             "is_verified",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "role", "user"]
+        read_only_fields = ["id", "role"]
+
+   
+
+    def update(self, instance, validated_data):
+
+        image = validated_data.pop('image', None)
+        if image:
+            instance.image = image
+
+        # Update other fields of Student
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
 
     def get_role(self, obj):
         return ROLE_MAP.get(obj.user.role, -1)
 
+    def get_imageUrl(self, obj):
+        request = self.context.get("request")
+        if obj.image:
+            return request.build_absolute_uri(obj.image.url) if request else settings.MEDIA_URL + obj.image.url
+        return None
 
 class TeacherSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source="user.email", read_only=True)
     role = serializers.SerializerMethodField()
-    imageUrl = serializers.ImageField(source="image", read_only=True)
-
+    imageUrl = serializers.SerializerMethodField()
+    image = serializers.ImageField(write_only=True, required=False)
     class Meta:
         model = Teacher
         fields = [
@@ -100,6 +121,7 @@ class TeacherSerializer(serializers.ModelSerializer):
             "join_date",
             "department",
             "imageUrl",
+            'image',
             "role",
             "is_verified",
             "created_at",
@@ -109,3 +131,8 @@ class TeacherSerializer(serializers.ModelSerializer):
 
     def get_role(self, obj):
         return ROLE_MAP.get(obj.user.role, -1)
+    def get_imageUrl(self, obj):
+        request = self.context.get("request")
+        if obj.image:
+            return request.build_absolute_uri(obj.image.url) if request else settings.MEDIA_URL + obj.image.url
+        return None
