@@ -282,10 +282,20 @@ class UpdateStudentProfileView(generics.RetrieveUpdateAPIView):
         if serializer.is_valid():
             self.perform_update(serializer)
             logger.debug(f"Update successful: {serializer.data}")
-            return Response(serializer.data)
+            return Response({
+                "isSuccess": True,
+                "message": "Student retrieved successfully",
+                "data": serializer.data,
+                "errors": []
+            }, status=status.HTTP_200_OK)    
         else:
             logger.warning(f"Serializer errors: {serializer.errors}")
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                "isSuccess": False,
+                "message": "Student not found",
+                "data": None,
+                "errors": [serializer.errors]
+            }, status=status.HTTP_404_NOT_FOUND)
 
 
 class UpdateTeacherProfileView(generics.RetrieveUpdateAPIView):
@@ -302,8 +312,19 @@ class UpdateTeacherProfileView(generics.RetrieveUpdateAPIView):
 
         if not serializer.is_valid():
             print("🔴 Serializer errors:", serializer.errors)
-            return Response(serializer.errors, status=400)
+            return Response({
+                    "isSuccess": False,
+                    "message": "Teacher not found",
+                    "data": None,
+                    "errors": [serializer.errors]
+                }, status=status.HTTP_404_NOT_FOUND)
 
         self.perform_update(serializer)
-        return Response(serializer.data)
+        return Response({
+                "isSuccess": True,
+                "message": "Teacher retrieved successfully",
+                "data": serializer.data,
+                "errors": []
+            }, status=status.HTTP_200_OK)
+    
 
