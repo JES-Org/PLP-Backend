@@ -11,14 +11,32 @@ class ClassroomView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, id=None):
-        if id:
-            classroom = get_object_or_404(Classroom, id=id)
-            serializer = ClassroomSerializer(classroom)
-            return Response(serializer.data)
-        else:
-            classrooms = Classroom.objects.all()
-            serializer = ClassroomSerializer(classrooms, many=True)
-            return Response(serializer.data)
+        try:
+            if id:
+                classroom = get_object_or_404(Classroom, id=id)
+                serializer = ClassroomSerializer(classroom)
+                return Response({
+                    "isSuccess": True,
+                    "message": None,
+                    "data": serializer.data,
+                    "errors": None
+                })
+            else:
+                classrooms = Classroom.objects.all()
+                serializer = ClassroomSerializer(classrooms, many=True)
+                Response({
+                    "isSuccess": True,
+                    "message": None,
+                    "data": serializer.data,
+                    "errors": None
+                })
+        except Exception as e:
+           return Response({
+            "isSuccess": False,
+            "message": "An error occurred.",
+            "data": None,
+            "errors": [str(e)]
+        }, status=status.HTTP_400_BAD_REQUEST)       
 
     def post(self, request):
         serializer = ClassroomSerializer(data=request.data)
@@ -50,17 +68,42 @@ class TeacherClassroomView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, teacher_id):
-        classrooms = Classroom.objects.filter(teacher__id=teacher_id)
-        serializer = ClassroomSerializer(classrooms, many=True)
-        return Response(serializer.data)
-
+        try:
+            classrooms = Classroom.objects.filter(teacher__id=teacher_id)
+            serializer = ClassroomSerializer(classrooms, many=True)
+            return Response({
+                "isSuccess": True,
+                "message": None,
+                "data": serializer.data,
+                "errors": None
+                })
+        except Exception as e:
+            return Response({
+                "isSuccess": False,
+                "message": "An error occurred.",
+                "data": None,
+                "errors": [str(e)]
+            }, status=status.HTTP_400_BAD_REQUEST)
 class StudentClassroomView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, student_id):
-        classrooms = Classroom.objects.filter(batches__students__id=student_id).distinct()
-        serializer = ClassroomSerializer(classrooms, many=True)
-        return Response(serializer.data)
+        try:
+            classrooms = Classroom.objects.filter(batches__students__id=student_id).distinct()
+            serializer = ClassroomSerializer(classrooms, many=True)
+            return Response({
+                "isSuccess": True,
+                "message": None,
+                "data": serializer.data,
+                "errors": None
+            })
+        except Exception as e:
+            return Response({
+                "isSuccess": False,
+                "message": "An error occurred.",
+                "data": None,
+                "errors": [str(e)]
+            }, status=status.HTTP_400_BAD_REQUEST)  
 
 class AddBatchView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -79,12 +122,25 @@ class SearchClassroomView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        query = request.query_params.get('query', '')
-        classrooms = Classroom.objects.filter(
-            Q(name__icontains=query) | Q(course_no__icontains=query)
-        )
-        serializer = ClassroomSerializer(classrooms, many=True)
-        return Response(serializer.data)
+        try:  
+            query = request.query_params.get('query', '')
+            classrooms = Classroom.objects.filter(
+                Q(name__icontains=query) | Q(course_no__icontains=query)
+            )
+            serializer = ClassroomSerializer(classrooms, many=True)
+            return Response({
+                "isSuccess": True,
+                "message": None,
+                "data": serializer.data,
+                "errors": None
+            })
+        except Exception as e:
+            return Response({
+                "isSuccess": False,
+                "message": "An error occurred.",
+                "data": None,
+                "errors": [str(e)]
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 class AddStudentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
