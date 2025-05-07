@@ -94,9 +94,11 @@ class BatchSerializer(serializers.ModelSerializer):
 
 
 class ClassroomSerializer(serializers.ModelSerializer):
-    teacher = serializers.PrimaryKeyRelatedField(
-        queryset=Teacher.objects.all()
-    )
+    creatorId = serializers.PrimaryKeyRelatedField(
+            queryset=Teacher.objects.all(),
+            source="teacher",  # This maps creatorId to the model's teacher field
+            write_only=True
+        )
     teacher_details = TeacherInlineSerializer(source="teacher", read_only=True)
     batches = serializers.PrimaryKeyRelatedField(
         queryset=Batch.objects.all(), many=True, required=False
@@ -111,9 +113,9 @@ class ClassroomSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
-            "course_no",
+            "courseNo",
             "description",
-            "teacher",
+            "creatorId",
             "teacher_details",
             "batches",
             "batch_details",
@@ -126,7 +128,7 @@ class ClassroomSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         if hasattr(self, "fields"):
             if "teacher_details" in self.fields:
-                self.fields["teacher"].write_only = True
+                self.fields["creatorId"].write_only = True
             if "batch_details" in self.fields:
                 self.fields["batches"].write_only = True
 
