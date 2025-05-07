@@ -7,6 +7,8 @@ from .views import (
     SearchClassroomView,
     AddStudentView,
     RemoveStudentView,
+    DepartmentListCreateView,
+    DepartmentDetailView
 )
 
 urlpatterns = [
@@ -18,4 +20,7 @@ urlpatterns = [
     path('search/', SearchClassroomView.as_view(), name='classroom-search'),
     path('add-student/', AddStudentView.as_view(), name='classroom-add-student'),
     path('remove-student/', RemoveStudentView.as_view(), name='classroom-remove-student'),
+    path('department/', DepartmentListCreateView.as_view(), name='department-list-create'), 
+    path('department/<int:id>/', DepartmentDetailView.as_view(), name='department-detail'),
+    
 ]
