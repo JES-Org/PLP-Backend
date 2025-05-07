@@ -10,6 +10,11 @@ from .models import (
 )
 from users.models import Teacher, Student
 
+class DepartmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = ['id', 'name', 'description', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']        
 
 class TeacherInlineSerializer(serializers.ModelSerializer):
     user_email = serializers.EmailField(source="user.email", read_only=True)
@@ -52,10 +57,7 @@ class StudentInlineSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}"
 
-class DepartmentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Department
-        fields = ["id", "name"]
+
 
 
 class BatchSerializer(serializers.ModelSerializer):
@@ -321,3 +323,4 @@ class MessageSerializer(serializers.ModelSerializer):
             })
 
         return data
+
