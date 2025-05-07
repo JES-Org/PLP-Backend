@@ -22,7 +22,7 @@ class Batch(models.Model):
 
 class Classroom(models.Model):
     name = models.CharField(max_length=255)
-    course_no = models.CharField(max_length=50)
+    courseNo = models.CharField(max_length=50)
     description = models.TextField()
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='created_classrooms')
     batches = models.ManyToManyField(Batch, related_name='classrooms', blank=True)
