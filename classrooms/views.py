@@ -4,8 +4,9 @@ from rest_framework import status, permissions
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 
-from .models import Classroom, Teacher, Student, Batch
-from .serializers import ClassroomSerializer
+from .models import Classroom, Teacher, Student, Batch,Department
+from .serializers import ClassroomSerializer,DepartmentSerializer
+ 
 
 class ClassroomView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -109,14 +110,21 @@ class AddBatchView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        classroom_id = request.data.get('classroom')
-        batch_id = request.data.get('batch')
-        classroom = get_object_or_404(Classroom, id=classroom_id)
-        batch = get_object_or_404(Batch, id=batch_id)
+        section = request.data.get('section')
+        year = request.data.get('year')
+        department = request.data.get('department')
+        class_room_id = request.data.get('classRoomId')
+
+        classroom = get_object_or_404(Classroom, id=class_room_id)
+        batch, created = Batch.objects.get_or_create(
+            section=section,
+            year=year,
+            department_id=department
+        )
         classroom.batches.add(batch)
         classroom.save()
-        # Optionally publish event here
         return Response({'detail': 'Batch added successfully.'})
+
 
 class SearchClassroomView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -166,3 +174,39 @@ class RemoveStudentView(APIView):
             batch.students.remove(student)
         # Optionally publish event here
         return Response({'detail': 'Student removed successfully.'})
+    
+class DepartmentListCreateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        departments = Department.objects.all()
+        serializer = DepartmentSerializer(departments, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = DepartmentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class DepartmentDetailView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, id):
+        department = get_object_or_404(Department, id=id)
+        serializer = DepartmentSerializer(department)
+        return Response(serializer.data)
+
+    def put(self, request, id):
+        department = get_object_or_404(Department, id=id)
+        serializer = DepartmentSerializer(department, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, id):
+        department = get_object_or_404(Department, id=id)
+        department.delete()
+        return Response({'success': True, 'id': id}, status=status.HTTP_200_OK)   
