@@ -73,7 +73,6 @@ class RegisterView(generics.CreateAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
@@ -81,8 +80,24 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         try:
             response = super().post(request, *args, **kwargs)
             email = request.data.get("email")
-            role= request.data.get("role")
-            user = User.objects.get(email=email,role=role)
+            role = request.data.get("role")
+            user = User.objects.get(email=email, role=role)
+
+            teacher_data = None
+            student_data = None
+
+            if role == "teacher":
+                try:
+                    teacher = user.teacher_profile
+                    teacher_data = TeacherSerializer(teacher).data
+                except Teacher.DoesNotExist:
+                    teacher_data = None
+            elif role == "student":
+                try:
+                    student = user.student_profile
+                    student_data = StudentSerializer(student).data
+                except Student.DoesNotExist:
+                    student_data = None
 
             return Response(
                 {
@@ -93,6 +108,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                         "email": user.email,
                         "role": ROLE_MAP.get(user.role, -1),
                         "token": response.data.get("access"),
+                        "teacher": teacher_data,
+                        "student": student_data,
                     },
                     "errors": [],
                 },
