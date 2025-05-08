@@ -153,13 +153,20 @@ class SearchClassroomView(APIView):
 class AddStudentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
-        student_id = request.query_params.get('studentId')
-        classroom_id = request.query_params.get('classroomId')
+        print(request.data)
+        rqbatch = request.data.get('batch')
+        batch = Batch.objects.filter(year=rqbatch['year'], section=rqbatch['section'], department=rqbatch['department']).first()
+        print(batch)
+        students = Student.objects.filter(batch=batch)
+        print(students)
+        classroom_id = request.data.get('classRoomId')
+        print(classroom_id)
         classroom = get_object_or_404(Classroom, id=classroom_id)
-        student = get_object_or_404(Student, id=student_id)
-        for batch in classroom.batches.all():
-            batch.students.add(student)
-        # Optionally publish event here
+        print(classroom)
+        
+        for student in students:
+            classroom.students.add(student)
+        
         return Response({'detail': 'Student added successfully.'})
 
 class RemoveStudentView(APIView):
