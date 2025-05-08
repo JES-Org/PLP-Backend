@@ -17,7 +17,6 @@ class Batch(models.Model):
     section = models.CharField(max_length=10)
     year = models.PositiveIntegerField()
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
-    students = models.ManyToManyField(Student, related_name='batches', blank=True)
 
     class Meta:
         unique_together = ('section', 'year', 'department')
