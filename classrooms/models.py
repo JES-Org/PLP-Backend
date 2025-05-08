@@ -36,12 +36,19 @@ class Classroom(models.Model):
 
     def __str__(self):
         return self.name
+    def get_all_student(self):
+        if hasattr(self, '_cached_students'):
+            return self._cached_students
+            
+        self._cached_students = Student.objects.filter(
+            batch__in=self.batches.all()
+        ).distinct()
+        return self._cached_students
 
 class Announcement(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
     class_room = models.ForeignKey(Classroom, on_delete=models.CASCADE, related_name='announcements')
-    batch = models.ForeignKey(Batch, on_delete=models.SET_NULL, null=True, blank=True, related_name='announcements')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
