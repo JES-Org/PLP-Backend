@@ -77,10 +77,14 @@ class Student(models.Model):
     last_name = models.CharField(max_length=100)
     dob = models.DateField(null=True, blank=True)
     phone = models.CharField(max_length=20)
-    department = models.CharField(max_length=100)
+    batch = models.ForeignKey(
+        'classrooms.Batch',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='students'
+    )    
     join_date = models.DateField(auto_now_add=True)
-    year = models.IntegerField(null=True, blank=True)
-    section = models.CharField(max_length=10, null=True, blank=True)
     image = models.ImageField(upload_to="avatars/", null=True, blank=True)
     is_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
