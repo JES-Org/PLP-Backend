@@ -7,6 +7,9 @@ from .models import User, Teacher, Student
 from django.conf import settings
 from classrooms.models import Batch
 from classrooms.serializers import BatchSerializer
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+import re
 ROLE_MAP = {"student": 0, "teacher": 1, "admin": 2}
 
 
@@ -14,7 +17,6 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "email", "role","is_active", "is_staff"]
-
 
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,6 +27,20 @@ class RegisterSerializer(serializers.ModelSerializer):
             "role",
         ]
         extra_kwargs = {"password": {"write_only": True}}
+
+    def validate_email(self, value):
+    
+        # First validate basic email format
+        try:
+            validate_email(value)
+        except ValidationError:
+            raise serializers.ValidationError("Enter a valid email address.")
+        
+        # Check for bdu domain
+        if not re.match(r'^[a-zA-Z0-9_.+-]+@bdu\.edu\.et$', value):
+            raise serializers.ValidationError("Email must be a valid @bdu.edu.et address.")
+        
+        return value
 
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
