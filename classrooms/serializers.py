@@ -149,66 +149,35 @@ class ClassroomSerializer(serializers.ModelSerializer):
 
 
 class AttachmentSerializer(serializers.ModelSerializer):
-    announcement = serializers.PrimaryKeyRelatedField(
-        queryset=Announcement.objects.all()
-    )
-    file_url = serializers.SerializerMethodField(read_only=True)
-
     class Meta:
         model = Attachment
-        fields = ["id", "announcement", "file", "file_url"]
-        extra_kwargs = {
-            "file": {"write_only": True}
-        }
-
-    def get_file_url(self, obj):
-        request = self.context.get("request")
-        if obj.file and hasattr(obj.file, "url"):
-            if request:
-                return request.build_absolute_uri(obj.file.url)
-            return obj.file.url
-        return None
-
+        fields = ['id', 'file']
+        read_only_fields = ['id']
 
 class AnnouncementSerializer(serializers.ModelSerializer):
-    class_room = serializers.PrimaryKeyRelatedField(
-        queryset=Classroom.objects.all()
-    )
-    class_room_details = ClassroomSerializer(
-        source="class_room", read_only=True
-    )
-    batch = serializers.PrimaryKeyRelatedField(
-        queryset=Batch.objects.all(), required=False, allow_null=True
-    )
-    batch_details = BatchSerializer(source="batch", read_only=True)
-
     attachments = AttachmentSerializer(many=True, read_only=True)
-
-    created_at = serializers.DateTimeField(read_only=True)
-    updated_at = serializers.DateTimeField(read_only=True)
+    class_room_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Announcement
         fields = [
-            "id",
-            "title",
-            "content",
-            "class_room",
-            "class_room_details",
-            "batch",
-            "batch_details",
-            "attachments",
-            "created_at",
-            "updated_at",
+            'id', 
+            'title', 
+            'content', 
+            'class_room', 
+            'class_room_details',
+            'attachments',
+            'created_at', 
+            'updated_at'
         ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'attachments']
+        extra_kwargs = {
+            'class_room': {'write_only': True}
+        }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if hasattr(self, "fields"):
-            if "class_room_details" in self.fields:
-                self.fields["class_room"].write_only = True
-            if "batch_details" in self.fields and self.fields.get("batch"): # batch can be null
-                self.fields["batch"].write_only = True
+    def get_class_room_details(self, obj):
+        from classrooms.serializers import ClassroomSerializer
+        return ClassroomSerializer(obj.class_room).data
 
 
 class MessageParticipantSerializer(serializers.Serializer):
