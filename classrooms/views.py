@@ -176,7 +176,7 @@ class RemoveStudentView(APIView):
         return Response({'detail': 'Student removed successfully.'})
     
 class DepartmentListCreateView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         departments = Department.objects.all()
@@ -191,7 +191,7 @@ class DepartmentListCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class DepartmentDetailView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request, id):
         department = get_object_or_404(Department, id=id)
