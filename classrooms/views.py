@@ -18,10 +18,14 @@ class ClassroomView(APIView):
             if id:
                 classroom = get_object_or_404(Classroom, id=id)
                 serializer = ClassroomSerializer(classroom)
+                data = serializer.data
+                data['members'] = []
+                for batch in classroom.batches.all():
+                    data['members'].extend(batch.students.values())
                 return Response({
                     "isSuccess": True,
                     "message": None,
-                    "data": serializer.data,
+                    "data": data,
                     "errors": None
                 })
             else:
