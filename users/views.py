@@ -16,6 +16,8 @@ from .serializers import (
     RegisterSerializer,
     CustomTokenObtainPairSerializer,
 )
+from classrooms.models import Batch
+from django.http import Http404
 
 ROLE_MAP = {"student": 0, "teacher": 1, "admin": 2}
 ROLE_REVERSE_MAP = {0: "student", 1: "teacher", 2: "admin"}
@@ -273,46 +275,58 @@ class GetStudentByUserIdView(APIView):
                 "data": None,
                 "errors": [str(e)]
             }, status=status.HTTP_404_NOT_FOUND)
-
+        
 class UpdateStudentProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = StudentSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
         user = self.request.user
-        print("data",self.request.data)
-
-        logger.debug(f"Authenticated user: {user}")
         try:
-            profile = user.student_profile
-            logger.debug(f"Student profile found: {profile}")
-            return profile
+            return user.student_profile
         except Exception as e:
             logger.error(f"Error retrieving student profile: {e}")
-            raise
+            raise Http404("Student profile not found")
 
     def update(self, request, *args, **kwargs):
-        logger.debug(f"Request data: {request.data}")
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        
+        # Convert frontend data to expected format
+        request_data = request.data.copy()
+        
+        # If department/section/year are provided, find/create matching batch
+        if all(k in request_data for k in ['department', 'section', 'year']):
+            try:
+                batch, created = Batch.objects.get_or_create(
+                    department_id=request_data['department'],
+                    section=request_data['section'],
+                    year=request_data['year']
+                )
+                request_data['batch'] = batch.id
+            except Exception as e:
+                logger.error(f"Error processing batch data: {e}")
+                return Response({
+                    "isSuccess": False,
+                    "message": "Invalid batch data",
+                    "errors": [str(e)]
+                }, status=status.HTTP_400_BAD_REQUEST)
 
+        serializer = self.get_serializer(instance, data=request_data, partial=True)
+        
         if serializer.is_valid():
             self.perform_update(serializer)
-            logger.debug(f"Update successful: {serializer.data}")
             return Response({
                 "isSuccess": True,
-                "message": "Student retrieved successfully",
-                "data": serializer.data,
-                "errors": []
-            }, status=status.HTTP_200_OK)    
-        else:
-            logger.warning(f"Serializer errors: {serializer.errors}")
-            return Response({
-                "isSuccess": False,
-                "message": "Student not found",
-                "data": None,
-                "errors": [serializer.errors]
-            }, status=status.HTTP_404_NOT_FOUND)
+                "message": "Profile updated successfully",
+                "data": serializer.data
+            })
+        
+        return Response({
+            "isSuccess": False,
+            "message": "Update failed",
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class UpdateTeacherProfileView(generics.RetrieveUpdateAPIView):
