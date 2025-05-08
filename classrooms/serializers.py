@@ -36,10 +36,11 @@ class TeacherInlineSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}"
 
-
 class StudentInlineSerializer(serializers.ModelSerializer):
     user_email = serializers.EmailField(source="user.email", read_only=True)
     full_name = serializers.SerializerMethodField()
+    department = serializers.SerializerMethodField()
+    batch_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
@@ -50,13 +51,25 @@ class StudentInlineSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "student_id",
-            "department",
+            "department", 
+            "batch_details"  
         ]
         read_only_fields = ["first_name", "last_name"]
 
     def get_full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}"
 
+    def get_department(self, obj):
+        return obj.batch.department.name if obj.batch else None
+
+    def get_batch_details(self, obj):
+        if obj.batch:
+            return {
+                "id": obj.batch.id,
+                "section": obj.batch.section,
+                "year": obj.batch.year
+            }
+        return None
 
 
 
@@ -68,10 +81,13 @@ class BatchSerializer(serializers.ModelSerializer):
         source="department", read_only=True
     )
     students = serializers.PrimaryKeyRelatedField(
-        queryset=Student.objects.all(), many=True, required=False
+        many=True,
+        read_only=True 
     )
     student_details = StudentInlineSerializer(
-        source="students", many=True, read_only=True
+        source="students", 
+        many=True, 
+        read_only=True
     )
 
     class Meta:
@@ -91,9 +107,6 @@ class BatchSerializer(serializers.ModelSerializer):
         if hasattr(self, "fields"):
             if "department_details" in self.fields:
                 self.fields["department"].write_only = True
-            if "student_details" in self.fields:
-                self.fields["students"].write_only = True
-
 
 class ClassroomSerializer(serializers.ModelSerializer):
     creatorId = serializers.PrimaryKeyRelatedField(
