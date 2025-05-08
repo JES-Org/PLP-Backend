@@ -80,6 +80,15 @@ class BatchSerializer(serializers.ModelSerializer):
     department_details = DepartmentSerializer(
         source="department", read_only=True
     )
+    students = serializers.PrimaryKeyRelatedField(
+        many=True,
+        read_only=True 
+    )
+    student_details = StudentInlineSerializer(
+        source="students", 
+        many=True, 
+        read_only=True
+    )
 
     class Meta:
         model = Batch
@@ -89,6 +98,8 @@ class BatchSerializer(serializers.ModelSerializer):
             "year",
             "department",
             "department_details",
+            "students",
+            "student_details",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -108,9 +119,6 @@ class ClassroomSerializer(serializers.ModelSerializer):
         queryset=Batch.objects.all(), many=True, required=False
     )
     batch_details = BatchSerializer(source="batches", many=True, read_only=True)
-    students = serializers.PrimaryKeyRelatedField(
-        queryset=Student.objects.all(), many=True, required=False
-    )
 
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
@@ -124,7 +132,6 @@ class ClassroomSerializer(serializers.ModelSerializer):
             "description",
             "creatorId",
             "teacher_details",
-            "students",
             "batches",
             "batch_details",
             "is_archived",

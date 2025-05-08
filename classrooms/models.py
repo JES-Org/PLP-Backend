@@ -30,7 +30,6 @@ class Classroom(models.Model):
     description = models.TextField()
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='created_classrooms')
     batches = models.ManyToManyField(Batch, related_name='classrooms', blank=True)
-    students = models.ManyToManyField(Student, related_name='classrooms', blank=True)
     is_archived = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
