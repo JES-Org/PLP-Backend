@@ -5,7 +5,8 @@ from django.contrib.auth import authenticate
 
 from .models import User, Teacher, Student
 from django.conf import settings
-
+from classrooms.models import Batch
+from classrooms.serializers import BatchSerializer
 ROLE_MAP = {"student": 0, "teacher": 1, "admin": 2}
 
 
@@ -57,34 +58,37 @@ class StudentSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
     imageUrl = serializers.SerializerMethodField()
     image = serializers.ImageField(write_only=True, required=False)
+    batch = serializers.PrimaryKeyRelatedField(
+        queryset=Batch.objects.all(),
+        required=False,
+        allow_null=True
+    )
+    batch_details = BatchSerializer(source='batch', read_only=True)
+    department = serializers.SerializerMethodField(read_only=True)
+    section = serializers.SerializerMethodField(read_only=True)
+    year = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Student
         fields = [
-            "id",
-            "student_id",
-            "first_name",
-            "last_name",
-            "email",              # shown in responses and accepted in input
-            "dob",
-            "phone",
-            "join_date",
-            "year",
-            "section",
-            "department",
-            "imageUrl",
-            "image",
-            "role",
-            "is_verified",
-            "created_at",
-            "updated_at",
+            "id", "student_id", "first_name", "last_name", "email",
+            "dob", "phone", "join_date", "batch", "batch_details",
+            "department", "section", "year",  # Read-only for compatibility
+            "imageUrl", "image", "role", "is_verified",
+            "created_at", "updated_at"
         ]
-        read_only_fields = ["id", "role"]
-
-   
+        read_only_fields = ["id", "role", "batch_details", "department", "section", "year"]
+    def get_department(self, obj):
+            return obj.batch.department.id if obj.batch else None
+        
+    def get_section(self, obj):
+            return obj.batch.section if obj.batch else None
+        
+    def get_year(self, obj):
+            return obj.batch.year if obj.batch else None
 
     def update(self, instance, validated_data):
-
+        validated_data.pop('email', None)
         image = validated_data.pop('image', None)
         if image:
             instance.image = image
