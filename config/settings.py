@@ -31,12 +31,14 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "rest_framework_simplejwt.token_blacklist",
+    'channels',
     # Local
     "users",
     "classrooms",
     "assessments",
     "chat",
     "analytics",
+    "notifications",
 ]
 
 REST_FRAMEWORK = {
@@ -116,6 +118,13 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
+
+ASGI_APPLICATION = "config.routing.application"
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
