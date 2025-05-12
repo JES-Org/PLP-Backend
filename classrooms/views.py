@@ -3,10 +3,12 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
-
-from .models import Classroom, Teacher, Student, Batch,Department
-from .serializers import ClassroomSerializer,DepartmentSerializer
- 
+from utlits.utils import create_notification
+from .models import Classroom, Teacher, Student, Batch,Department, Announcement, Attachment
+from .serializers import ClassroomSerializer,DepartmentSerializer, AnnouncementSerializer, AttachmentSerializer
+from django.http import FileResponse
+import os
+from rest_framework.views import exception_handler
 
 class ClassroomView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -221,3 +223,143 @@ class DepartmentDetailView(APIView):
         department = get_object_or_404(Department, id=id)
         department.delete()
         return Response({'success': True, 'id': id}, status=status.HTTP_200_OK)   
+    
+class AnnouncementListCreateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, class_room_id):
+        classroom = get_object_or_404(Classroom, id=class_room_id)
+        announcements = Announcement.objects.filter(class_room=classroom).order_by('-created_at')
+        serializer = AnnouncementSerializer(announcements, many=True)
+        
+        response_data = {
+            "isSuccess": True,
+            "message": "Announcements retrieved successfully",
+            "data": serializer.data,
+            "errors": None
+        }
+        return Response(response_data)
+
+    def post(self, request, class_room_id):
+        classroom = get_object_or_404(Classroom, id=class_room_id)
+        data = request.data.copy()
+        data['class_room'] = classroom.id
+        
+        serializer = AnnouncementSerializer(data=data)
+        if serializer.is_valid():
+            announcement = serializer.save()
+            notification = create_notification(
+                classroom=classroom,
+                title=f"New Announcement in {classroom.name}",
+                message=announcement.title,  
+                notification_type='announcement',
+                related_object_id=announcement.id
+            )
+            response_data = {
+                "isSuccess": True,
+                "message": "Announcement created successfully",
+                "data": AnnouncementSerializer(announcement).data,
+                "errors": None
+            }
+            return Response(response_data, status=status.HTTP_201_CREATED)
+        
+        response_data = {
+            "isSuccess": False,
+            "message": "Validation error",
+            "data": None,
+            "errors": serializer.errors
+        }
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+class AnnouncementDetailView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, class_room_id, id):
+        announcement = get_object_or_404(Announcement, id=id, class_room_id=class_room_id)
+        serializer = AnnouncementSerializer(announcement)
+        
+        response_data = {
+            "isSuccess": True,
+            "message": "Announcement retrieved successfully",
+            "data": serializer.data,
+            "errors": None
+        }
+        return Response(response_data)
+
+    def delete(self, request, class_room_id, id):
+        announcement = get_object_or_404(Announcement, id=id, class_room_id=class_room_id)
+        announcement.delete()
+        
+        response_data = {
+            "isSuccess": True,
+            "message": "Announcement deleted successfully",
+            "data": None,
+            "errors": None
+        }
+        return Response(response_data, status=status.HTTP_204_NO_CONTENT)
+class AttachmentView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, class_room_id, id):
+        try:
+            announcement = get_object_or_404(Announcement, id=id, class_room_id=class_room_id)
+            print("request.FILES", request.FILES)
+
+            if 'attachments' not in request.FILES:
+                return Response({
+                    "isSuccess": False,
+                    "message": "No file provided",
+                    "data": None,
+                    "errors": ["No file provided"]
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            file = request.FILES['attachments']
+
+            if file.size > 10 * 1024 * 1024:
+                return Response({
+                    "isSuccess": False,
+                    "message": "File size exceeds 10MB limit",
+                    "data": None,
+                    "errors": ["File size exceeds 10MB limit"]
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            attachment = Attachment.objects.create(
+                announcement=announcement,
+                file=file
+            )
+
+            return Response({
+                "isSuccess": True,
+                "message": "Attachment created successfully",
+                "data": AttachmentSerializer(attachment).data,
+                "errors": None
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            print("Unexpected error:", str(e))
+            return Response({
+                "isSuccess": False,
+                "message": "An unexpected error occurred",
+                "data": None,
+                "errors": [str(e)]
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class AttachmentDownloadView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, class_room_id, id, attachment_id):
+        announcement = get_object_or_404(Announcement, id=id, class_room_id=class_room_id)
+        attachment = get_object_or_404(Attachment, id=attachment_id, announcement=announcement)
+        
+        if not attachment.file:
+            response_data = {
+                "isSuccess": False,
+                "message": "File not found",
+                "data": None,
+                "errors": ["File not found"]
+            }
+            return Response(response_data, status=status.HTTP_404_NOT_FOUND)
+        
+        response = FileResponse(attachment.file.open('rb'), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{os.path.basename(attachment.file.name)}"'
+        return response

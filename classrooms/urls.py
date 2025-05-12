@@ -8,7 +8,13 @@ from .views import (
     AddStudentView,
     RemoveStudentView,
     DepartmentListCreateView,
-    DepartmentDetailView
+    DepartmentDetailView,
+    AnnouncementListCreateView,
+    AnnouncementDetailView,
+    AttachmentView,
+    AttachmentDownloadView,
+
+
 )
 
 urlpatterns = [
@@ -22,5 +28,9 @@ urlpatterns = [
     path('remove-student/', RemoveStudentView.as_view(), name='classroom-remove-student'),
     path('department/', DepartmentListCreateView.as_view(), name='department-list-create'), 
     path('department/<int:id>/', DepartmentDetailView.as_view(), name='department-detail'),
+    path('<int:class_room_id>/announcements/', AnnouncementListCreateView.as_view(), name='announcement-list-create'),
+    path('<int:class_room_id>/announcements/<int:id>/', AnnouncementDetailView.as_view(), name='announcement-detail'),
+    path('<int:class_room_id>/announcements/attach/<int:id>/', AttachmentView.as_view(), name='attachment-create'),
+    path('<int:class_room_id>/announcements/<int:id>/attachments/<int:attachment_id>/', AttachmentDownloadView.as_view(), name='attachment-download'),
     
 ]

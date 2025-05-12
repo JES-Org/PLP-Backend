@@ -10,21 +10,9 @@ djangorestframework-simplejwt = "*"
 python-decouple = "*"
 django-cors-headers = "*"
 pillow = "*"
-
-[dev-packages]
-
-[requires]
-python_version = "3.12"
-[[source]]
-url = "https://pypi.org/simple"
-verify_ssl = true
-name = "pypi"
-
-[packages]
-django = "*"
-djangorestframework = "*"
-djangorestframework-simplejwt = "*"
-python-decouple = "*"
+channels = "*"
+channels-redis = "*"
+daphne = "*"
 
 [dev-packages]
 
