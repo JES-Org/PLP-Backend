@@ -8,6 +8,19 @@ class AnswerSerializer(serializers.ModelSerializer):
         model = Answer
         fields = ['id', 'text', 'is_correct', 'created_at', 'updated_at']
 
+class CreateQuestionSerializer(serializers.Serializer):
+    text = serializers.CharField()
+    weight = serializers.FloatField()
+    assessmentId = serializers.IntegerField()
+    tags = serializers.ListField(child=serializers.CharField(), required=False)
+    answers = serializers.ListField(child=serializers.CharField(), min_length=2)
+    correctAnswerIndex = serializers.IntegerField()
+
+    def validate(self, data):
+        if data['correctAnswerIndex'] >= len(data['answers']):
+            raise serializers.ValidationError("Correct answer index is out of range.")
+        return data
+
 class QuestionSerializer(serializers.ModelSerializer):
     answers = AnswerSerializer(many=True, read_only=True)
     assessment = serializers.PrimaryKeyRelatedField(read_only=True)

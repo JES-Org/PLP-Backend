@@ -7,8 +7,8 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 from django.utils import timezone
 
 from classrooms.models import Classroom
-from .models import Assessment
-from .serializers import AssessmentSerializer
+from .models import Answer, Assessment, Question
+from .serializers import AssessmentSerializer, CreateQuestionSerializer, QuestionSerializer
 
 class AssessmentListCreateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -122,3 +122,51 @@ class AssessmentDetailView(generics.RetrieveAPIView):
             "data": serializer.data,
             "errors": []
         })
+
+class AddQuestionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, classroom_id):
+        serializer = CreateQuestionSerializer(data=request.data)
+        print("Request data for adding question:", request.data)
+        if not serializer.is_valid():
+            print("Validation errors:", serializer.errors)
+            return Response({
+                "isSuccess": False,
+                "message": "Question could not be created",
+                "data": None,
+                "errors": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        validated = serializer.validated_data
+        try:
+            assessment = Assessment.objects.get(id=validated['assessmentId'], classroom_id=classroom_id)
+        except Assessment.DoesNotExist:
+            return Response({
+                "isSuccess": False,
+                "message": "Assessment not found",
+                "data": None,
+                "errors": ["No assessment with the given ID in this classroom."]
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        question = Question.objects.create(
+            text=validated['text'],
+            weight=validated['weight'],
+            assessment=assessment,
+            tags=validated.get('tags', [])
+        )
+
+        for idx, answer_text in enumerate(validated['answers']):
+            Answer.objects.create(
+                question=question,
+                text=answer_text,
+                is_correct=(idx == validated['correctAnswerIndex'])
+            )
+
+        response_data = QuestionSerializer(question).data
+        return Response({
+            "isSuccess": True,
+            "message": "Question created successfully.",
+            "data": response_data,
+            "errors": []
+        }, status=status.HTTP_201_CREATED)
