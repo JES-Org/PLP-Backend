@@ -137,12 +137,12 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 def send_otp(request):
     try:
         email = request.data.get("email")
-        user_id = request.data.get("userId")
-        role_num = request.data.get("role")
+        # user_id = request.data.get("userId")
+        # role_num = request.data.get("role")
 
-        role = ROLE_REVERSE_MAP.get(role_num)
+        # role = ROLE_REVERSE_MAP.get(role_num)
 
-        user = User.objects.get(id=user_id, email=email, role=role)
+        user = User.objects.get(email=email)
 
         otp_code = str(random.randint(100000, 999999))
         Otp.objects.create(user=user, code=otp_code)
@@ -177,12 +177,11 @@ def send_otp(request):
 def verify_otp(request):
     try:
         code = request.data.get("otp")
-        user_id = request.data.get("userId")
-        role_num = request.data.get("role")
+        email = request.data.get("email")
+        # role_num = request.data.get("role")
 
-        role = ROLE_REVERSE_MAP.get(role_num)
-        user = User.objects.get(id=user_id, role=role)
-
+        # role = ROLE_REVERSE_MAP.get(role_num)
+        user = User.objects.get(email=email)
         otp_obj = (
             Otp.objects.filter(user=user, code=code).order_by("-created_at").first()
         )
@@ -199,10 +198,10 @@ def verify_otp(request):
             )
 
         # Mark user as verified (update related profile)
-        if role == "student" and hasattr(user, "student_profile"):
+        if user.role == "student" and hasattr(user, "student_profile"):
             user.student_profile.is_verified = True
             user.student_profile.save()
-        elif role == "teacher" and hasattr(user, "teacher_profile"):
+        elif user.role == "teacher" and hasattr(user, "teacher_profile"):
             user.teacher_profile.is_verified = True
             user.teacher_profile.save()
 
@@ -361,3 +360,15 @@ class UpdateTeacherProfileView(generics.RetrieveUpdateAPIView):
             }, status=status.HTTP_200_OK)
     
 
+class ResetPasswordView(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        new_password = request.data.get('new_password')
+
+        try:
+            user = User.objects.get(email=email)
+            user.set_password(new_password)
+            user.save()
+            return Response({'message': 'Password reset successful'}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({'detail': 'User with this email not found'}, status=status.HTTP_404_NOT_FOUND)
