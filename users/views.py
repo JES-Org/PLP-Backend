@@ -51,7 +51,8 @@ class RegisterView(generics.CreateAPIView):
                 "email": user.email,
                 "role": ROLE_MAP.get(user.role, -1),
                 "token": tokens["access"],
-                "isVerified": False,  # Adjust if using email verification logic
+                "refresh": tokens["refresh"],
+                 "isVerified": False,  # Adjust if using email verification logic
             }
 
             return Response(
@@ -110,6 +111,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                         "email": user.email,
                         "role": ROLE_MAP.get(user.role, -1),
                         "token": response.data.get("access"),
+                        "refresh": response.data.get("refresh"),
                         "teacher": teacher_data,
                         "student": student_data,
                     },
