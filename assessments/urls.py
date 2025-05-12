@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import AssessmentCreateView, AssessmentPublishView
+from .views import AssessmentListCreateView, AssessmentDetailView, AssessmentPublishView
 
 urlpatterns = [
-    path('classroom/<str:classroom_id>/assessment/', AssessmentCreateView.as_view(), name='create-assessment'),
-    path('classroom/<str:classroom_id>/assessment/publish/<str:id>/', AssessmentPublishView.as_view(), name='publish-assessment'),
+    path('', AssessmentListCreateView.as_view(), name='list-create-assessment'),
+    path('publish/<int:id>/', AssessmentPublishView.as_view(), name='publish-assessment'),
+    path('<int:id>/', AssessmentDetailView.as_view(), name='get-assessment'),
 ]

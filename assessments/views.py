@@ -1,50 +1,62 @@
-from datetime import timezone
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import NotFound, PermissionDenied
+
+from django.utils import timezone
 
 from classrooms.models import Classroom
 from .models import Assessment
 from .serializers import AssessmentSerializer
 
-class AssessmentCreateView(generics.CreateAPIView):
-    queryset = Assessment.objects.all()
-    serializer_class = AssessmentSerializer
+class AssessmentListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def create(self, request, *args, **kwargs):
-        classroom_id = self.kwargs.get('classroom_id')
-        data = request.data.copy()
-        data['classroom'] = classroom_id
+    def get(self, request, classroom_id):
+        user = request.user
 
-        try:
-            Classroom.objects.get(id=classroom_id)
-        except Classroom.DoesNotExist:
-            return Response({
-                "isSuccess": False,
-                "message": "Assessment could not be created",
-                "data": None,
-                "errors": ["Classroom does not exist."]
-            }, status=status.HTTP_400_BAD_REQUEST)
+        if user.role == 'student':
+            assessments = Assessment.objects.filter(classroom_id=classroom_id, is_published=True)
+        else:
+            assessments = Assessment.objects.filter(classroom_id=classroom_id)
 
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-
+        serializer = AssessmentSerializer(assessments, many=True)
         return Response({
             "isSuccess": True,
-            "message": "Assessment created successfully.",
+            "message": "Assessments retrieved successfully.",
             "data": serializer.data,
             "errors": []
-        }, status=status.HTTP_201_CREATED)
+        }, status=status.HTTP_200_OK)
+
+    def post(self, request, classroom_id):
+        data = request.data.copy()
+        data['classroom'] = classroom_id
+        print("Data received:", data)
+        serializer = AssessmentSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "isSuccess": True,
+                "message": "Assessment created successfully.",
+                "data": serializer.data,
+                "errors": []
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            "isSuccess": False,
+            "message": "Assessment creation failed.",
+            "data": None,
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 class AssessmentPublishView(APIView):
     permission_classes = [IsAuthenticated]
 
     def put(self, request, classroom_id, id):
+        print("Publishing assessment with ID:", id, " for classroom ID:", classroom_id)
         try:
-            assessment = Assessment.objects.get(id=id, classroom_id=classroom_id)
+            assessment = Assessment.objects.get(id=id, classroom_id=int(classroom_id))
+            print("Assessment found:", assessment)
         except Assessment.DoesNotExist:
             return Response({
                 "isSuccess": False,
@@ -80,3 +92,33 @@ class AssessmentPublishView(APIView):
             "data": serializer.data,
             "errors": []
         }, status=status.HTTP_200_OK)
+
+class AssessmentDetailView(generics.RetrieveAPIView):
+    serializer_class = AssessmentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        classroom_id = self.kwargs.get("classroom_id")
+        assessment_id = self.kwargs.get("id")
+
+        try:
+            assessment = Assessment.objects.get(id=assessment_id, classroom_id=classroom_id)
+        except Assessment.DoesNotExist:
+            raise NotFound(detail="Assessment not found")
+
+        # Optional: restrict unpublished access for students
+        user = self.request.user
+        if user.role == "student" and not assessment.is_published:
+            raise PermissionDenied(detail="Assessment is not published")
+
+        return assessment
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response({
+            "isSuccess": True,
+            "message": "Assessment retrieved successfully.",
+            "data": serializer.data,
+            "errors": []
+        })

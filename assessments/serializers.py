@@ -27,7 +27,6 @@ class QuestionSerializer(serializers.ModelSerializer):
 
 class AssessmentSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, read_only=True)
-    classroom = serializers.StringRelatedField()  # or use ClassroomSerializer if you want more detail
 
     class Meta:
         model = Assessment
@@ -43,7 +42,7 @@ class AssessmentSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['is_published', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
 
 class SubmissionSerializer(serializers.ModelSerializer):
     student = serializers.StringRelatedField()
