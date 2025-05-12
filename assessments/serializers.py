@@ -10,6 +10,7 @@ class AnswerSerializer(serializers.ModelSerializer):
 
 class QuestionSerializer(serializers.ModelSerializer):
     answers = AnswerSerializer(many=True, read_only=True)
+    assessment = serializers.PrimaryKeyRelatedField(read_only=True)
     
     class Meta:
         model = Question
@@ -42,10 +43,11 @@ class AssessmentSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
+        read_only_fields = ['is_published', 'created_at', 'updated_at']
 
 class SubmissionSerializer(serializers.ModelSerializer):
-    student = serializers.StringRelatedField()  # or use StudentSerializer for more detail
-    assessment = serializers.StringRelatedField()  # or use AssessmentSerializer for more detail
+    student = serializers.StringRelatedField()
+    assessment = serializers.StringRelatedField()
 
     class Meta:
         model = Submission
