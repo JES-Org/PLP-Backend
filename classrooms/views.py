@@ -3,12 +3,13 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
-from utlits.utils import create_notification
+from utlits.utils import create_announcement_notification
 from .models import Classroom, Teacher, Student, Batch,Department, Announcement, Attachment
 from .serializers import ClassroomSerializer,DepartmentSerializer, AnnouncementSerializer, AttachmentSerializer
 from django.http import FileResponse
 import os
 from rest_framework.views import exception_handler
+import mimetypes
 
 class ClassroomView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -248,12 +249,9 @@ class AnnouncementListCreateView(APIView):
         serializer = AnnouncementSerializer(data=data)
         if serializer.is_valid():
             announcement = serializer.save()
-            notification = create_notification(
-                classroom=classroom,
-                title=f"New Announcement in {classroom.name}",
-                message=announcement.title,  
-                notification_type='announcement',
-                related_object_id=announcement.id
+            create_announcement_notification(
+                sender=request.user,
+                announcement=announcement
             )
             response_data = {
                 "isSuccess": True,
@@ -297,6 +295,29 @@ class AnnouncementDetailView(APIView):
             "errors": None
         }
         return Response(response_data, status=status.HTTP_204_NO_CONTENT)
+    def put(self, request, class_room_id, id):
+        announcement = get_object_or_404(Announcement, id=id, class_room_id=class_room_id)
+        serializer = AnnouncementSerializer(announcement, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            response_data = {
+                "isSuccess": True,
+                "message": "Announcement updated successfully",
+                "data": serializer.data,
+                "errors": None
+            }
+            return Response(response_data)
+        else:
+            print(serializer.errors)
+            response_data = {
+                "isSuccess": False,
+                "message": "Failed to update announcement",
+                "data": None,
+                "errors": serializer.errors
+            }
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST) 
+    
 class AttachmentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -343,23 +364,122 @@ class AttachmentView(APIView):
                 "data": None,
                 "errors": [str(e)]
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+        
 class AttachmentDownloadView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-
     def get(self, request, class_room_id, id, attachment_id):
-        announcement = get_object_or_404(Announcement, id=id, class_room_id=class_room_id)
-        attachment = get_object_or_404(Attachment, id=attachment_id, announcement=announcement)
-        
-        if not attachment.file:
-            response_data = {
+        try:
+            # Get the attachment
+            announcement = get_object_or_404(Announcement, id=id, class_room_id=class_room_id)
+            attachment = get_object_or_404(Attachment, id=attachment_id, announcement=announcement)
+
+            if not attachment.file:
+                return Response({
+                    "isSuccess": False,
+                    "message": "File not found",
+                    "data": None,
+                    "errors": ["File not found"]
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            # Get the actual file object
+            file_obj = attachment.file
+            print(f"Original storage path: {file_obj.name}")  # Debug log
+
+            # Safely extract filename with multiple fallbacks
+            original_filename = "attachment"
+            if file_obj.name:
+                # Try to get the filename from the path
+                try:
+                    original_filename = os.path.basename(file_obj.name)
+                except:
+                    pass
+
+                # If we got a path but no extension, try to find one
+                if '.' not in original_filename:
+                    try:
+                        # For some storage backends, the name might include query params
+                        original_filename = file_obj.name.split('?')[0].split('/')[-1]
+                    except:
+                        pass
+
+            # If we still don't have a proper filename, use a default with ID
+            if not original_filename or '.' not in original_filename:
+                original_filename = f"attachment_{attachment.id}"
+
+            # Get the file extension
+            file_extension = os.path.splitext(original_filename)[1].lower()
+
+            # Determine MIME type
+            mime_type = mimetypes.guess_type(original_filename)[0] or 'application/octet-stream'
+
+            # Special handling for common file types
+            if file_extension == '.jpg' or file_extension == '.jpeg':
+                mime_type = 'image/jpeg'
+            elif file_extension == '.png':
+                mime_type = 'image/png'
+            elif file_extension == '.pdf':
+                mime_type = 'application/pdf'
+            elif file_extension == '.docx':
+                mime_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            elif file_extension == '.xlsx':
+                mime_type = 'application/vndxmlformats-officedocument.spreadsheetml.sheet'
+
+            # Open the file
+            try:
+                file = file_obj.open('rb')
+            except Exception as e:
+                return Response({
+                    "isSuccess": False,
+                    "message": "Could not open file",
+                    "data": None,
+                    "errors": [str(e)]
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Create response
+            response = FileResponse(file, content_type=mime_type)
+            response['Content-Disposition'] = f'attachment; filename="{original_filename}"'
+            response['Content-Length'] = file_obj.size
+
+            return response
+
+        except Exception as e:
+            print(f"Error downloading file: {str(e)}")  # Debug log
+            return Response({
                 "isSuccess": False,
-                "message": "File not found",
+                "message": "An error occurred while downloading the file",
                 "data": None,
-                "errors": ["File not found"]
-            }
-            return Response(response_data, status=status.HTTP_404_NOT_FOUND)
-        
-        response = FileResponse(attachment.file.open('rb'), content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{os.path.basename(attachment.file.name)}"'
-        return response
+                "errors": [str(e)]
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AttachmentDeleteView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, attachment_id):
+        try:
+     
+            # Verify the attachment exists and belongs to the announcement
+            attachment = get_object_or_404(
+                Attachment, 
+                id=attachment_id
+            )
+            
+            # Delete the file from storage
+            attachment.file.delete(save=False)
+            # Delete the database record
+            attachment.delete()
+            
+            return Response({
+                "isSuccess": True,
+                "message": "Attachment deleted successfully",
+                "data": None,
+                "errors": []
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                "isSuccess": False,
+                "message": "Failed to delete attachment",
+                "data": None,
+                "errors": [str(e)]
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)        
