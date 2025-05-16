@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Classroom,Department,Batch
+from .models import Classroom,Department,Batch,Announcement,Attachment
 
 
 @admin.register(Classroom)
@@ -31,3 +31,22 @@ class BatchAdmin(admin.ModelAdmin):
     ordering = ('-id',)
     list_per_page = 10
     list_display_links = ('id', 'section')
+
+
+@admin.register(Announcement)
+class AnnouncementAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title','content','class_room', 'created_at')
+    search_fields = ('title',)
+    ordering = ('-id',)
+    list_per_page = 10
+    list_display_links = ('id', 'title')
+
+@admin.register(Attachment)
+class AttachmentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'file', 'announcement', 'created_at')
+    search_fields = ('file',)
+    ordering = ('-id',)
+    list_display_links = ('id', 'file')
+
+
+
