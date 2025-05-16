@@ -1,64 +1,47 @@
-# views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions
-from django.shortcuts import get_object_or_404
-from .models import Notification
-from .serializers import UnreadNotificationSerializer, NotificationSerializer
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
 
-class UnreadNotificationsAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+from .models import Notification
+from .serializers import NotificationSerializer
+
+
+class UnreadNotificationsView(APIView):
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        class_room_id = request.query_params.get('classRoomId')
-        if not class_room_id:
-            return Response(
-                {"error": "classRoomId parameter is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        user = request.user
+        unread_notifications = Notification.objects.filter(recipient=user, is_read=False)
+        serializer = NotificationSerializer(unread_notifications, many=True)
 
-        notifications = Notification.objects.filter(
-            classroom_id=class_room_id,
-            is_read=False
-        ).order_by('-created_at')
-
-        serializer = UnreadNotificationSerializer(notifications, many=True)
-        
-        response_data = {
+        return Response({
             "isSuccess": True,
-            "message": "Unread notifications retrieved successfully",
+            "message": "Unread notifications retrieved",
             "data": serializer.data,
             "errors": None
-        }
-        return Response(response_data)
+        })
 
-class NotificationDetailAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
 
-    def get(self, request, notification_id):
-        class_room_id = request.query_params.get('classRoomId')
-        if not class_room_id:
-            return Response(
-                {"error": "classRoomId parameter is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+class MarkNotificationAsReadView(APIView):
+    permission_classes = [IsAuthenticated]
 
-        notification = get_object_or_404(
-            Notification,
-            id=notification_id,
-            classroom_id=class_room_id
-        )
+    def post(self, request, notification_id):
+        try:
+            notification = Notification.objects.get(id=notification_id, recipient=request.user)
+            notification.is_read = True
+            notification.save()
 
-        # Mark as read when fetched
-        notification.is_read = True
-        notification.save()
-
-        serializer = NotificationSerializer(notification)
-        
-        response_data = {
-            "isSuccess": True,
-            "message": "Notification retrieved successfully",
-            "data": serializer.data,
-            "errors": None
-        }
-        return Response(response_data)
+            return Response({
+                "isSuccess": True,
+                "message": "Notification marked as read",
+                "data": None,
+                "errors": None
+            })
+        except Notification.DoesNotExist:
+            return Response({
+                "isSuccess": False,
+                "message": "Notification not found",
+                "data": None,
+                "errors": "Notification with given ID does not exist or doesn't belong to you."
+            }, status=status.HTTP_404_NOT_FOUND)
