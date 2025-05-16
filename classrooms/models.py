@@ -61,6 +61,8 @@ class Announcement(models.Model):
 class Attachment(models.Model):
     announcement = models.ForeignKey(Announcement, on_delete=models.CASCADE, related_name='attachments')
     file = models.FileField(upload_to='announcements/')
+    created_at = models.DateTimeField(auto_now_add=True ,blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True,blank=True, null=True)
 
     def __str__(self):
         return f"Attachment for {self.announcement.title} - {self.file.name}"
