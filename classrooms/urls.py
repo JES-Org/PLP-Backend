@@ -13,6 +13,7 @@ from .views import (
     AnnouncementDetailView,
     AttachmentView,
     AttachmentDownloadView,
+    AttachmentDeleteView
 
 
 )
@@ -30,7 +31,9 @@ urlpatterns = [
     path('department/<int:id>/', DepartmentDetailView.as_view(), name='department-detail'),
     path('<int:class_room_id>/announcements/', AnnouncementListCreateView.as_view(), name='announcement-list-create'),
     path('<int:class_room_id>/announcements/<int:id>/', AnnouncementDetailView.as_view(), name='announcement-detail'),
+    path('<int:class_room_id>/announcements/<int:id>/edit/', AnnouncementDetailView.as_view(), name='announcement-edit'),
     path('<int:class_room_id>/announcements/attach/<int:id>/', AttachmentView.as_view(), name='attachment-create'),
     path('<int:class_room_id>/announcements/<int:id>/attachments/<int:attachment_id>/', AttachmentDownloadView.as_view(), name='attachment-download'),
+    path('announcements/attachments/<int:attachment_id>/delete/', AttachmentDeleteView.as_view(), name='attachment-delete'),
     path('<int:classroom_id>/assessment/', include('assessments.urls'), name='classroom-assessments'),
 ]
