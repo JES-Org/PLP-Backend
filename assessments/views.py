@@ -7,8 +7,9 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 from django.utils import timezone
 
 from classrooms.models import Classroom
-from .models import Answer, Assessment, Question
-from .serializers import AssessmentSerializer, CreateQuestionSerializer, QuestionSerializer
+from users.models import Student
+from .models import Answer, Assessment, Question, Submission
+from .serializers import AssessmentSerializer, CreateQuestionSerializer, CreateSubmissionSerializer, QuestionSerializer
 
 class AssessmentListCreateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -170,3 +171,107 @@ class AddQuestionView(APIView):
             "data": response_data,
             "errors": []
         }, status=status.HTTP_201_CREATED)
+
+class AddSubmissionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, classroom_id):
+        serializer = CreateSubmissionSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                "isSuccess": False,
+                "message": "Submission could not be created",
+                "data": None,
+                "errors": serializer.errors,
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+        try:
+            assessment = Assessment.objects.get(id=data["assessment_id"], classroom_id=classroom_id)
+        except Assessment.DoesNotExist:
+            return Response({
+                "isSuccess": False,
+                "message": "Assessment not found",
+                "data": None,
+                "errors": ["Invalid assessment for this classroom."]
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        if not assessment.is_published:
+            return Response({
+                "isSuccess": False,
+                "message": "Submission could not be created",
+                "data": None,
+                "errors": ["Assessment is not published."]
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if timezone.now() > assessment.deadline:
+            return Response({
+                "isSuccess": False,
+                "message": "Submission could not be created",
+                "data": None,
+                "errors": ["Assessment deadline is passed."]
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            student = Student.objects.get(id=data["student_id"])
+        except Student.DoesNotExist:
+            return Response({
+                "isSuccess": False,
+                "message": "Submission could not be created",
+                "data": None,
+                "errors": ["Student not found."]
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        submission = Submission.objects.create(
+            student=student,
+            assessment=assessment,
+            answers=data["answers"],
+            score=0  # you can calculate score if needed
+        )
+
+        return Response({
+            "isSuccess": True,
+            "message": "Submission created successfully.",
+            "data": {
+                "id": submission.id,
+                "student": submission.student.id,
+                "assessment": submission.assessment.id,
+                "score": submission.score,
+                "createdAt": submission.created_at,
+                "updatedAt": submission.updated_at,
+            },
+            "errors": []
+        }, status=status.HTTP_201_CREATED)
+
+class GetSubmissionByStudentAndAssessmentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, classroom_id, student_id, assessment_id):
+        try:
+            submission = Submission.objects.get(
+                student_id=student_id,
+                assessment_id=assessment_id,
+                assessment__classroom_id=classroom_id
+            )
+        except Submission.DoesNotExist:
+            return Response({
+                "isSuccess": False,
+                "message": "Submission not found",
+                "data": None,
+                "errors": ["No submission found for the given student and assessment."]
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({
+            "isSuccess": True,
+            "message": "Submission retrieved successfully.",
+            "data": {
+                "id": submission.id,
+                "student": submission.student.id,
+                "assessment": submission.assessment.id,
+                "answers": submission.answers,
+                "score": submission.score,
+                "createdAt": submission.created_at,
+                "updatedAt": submission.updated_at,
+            },
+            "errors": []
+        }, status=status.HTTP_200_OK)

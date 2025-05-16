@@ -57,6 +57,16 @@ class AssessmentSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['created_at', 'updated_at']
 
+class CreateSubmissionSerializer(serializers.Serializer):
+    student_id = serializers.IntegerField()
+    assessment_id = serializers.IntegerField()
+    answers = serializers.JSONField()
+
+    def validate(self, data):
+        if not isinstance(data['answers'], dict):
+            raise serializers.ValidationError("Answers must be a JSON object mapping question IDs to answer IDs.")
+        return data
+
 class SubmissionSerializer(serializers.ModelSerializer):
     student = serializers.StringRelatedField()
     assessment = serializers.StringRelatedField()
