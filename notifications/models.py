@@ -1,24 +1,18 @@
-# models.py
 from django.db import models
-from classrooms.models import Classroom
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class Notification(models.Model):
-    NOTIFICATION_TYPES = (
-        ('announcement', 'Announcement'),
-        ('assignment', 'Assignment'),
-        ('forum', 'Forum Post'),
-    )
-    
-    classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE)
-    title = models.CharField(max_length=255)
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications',null=True, blank=True,)
+    sender = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='sent_notifications')
     message = models.TextField()
-    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    url = models.URLField(blank=True, null=True)  
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    related_object_id = models.PositiveIntegerField()  # ID of the related object (announcement, etc.)
-
+    
     class Meta:
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.user.username} - {self.title}"
+        return f"Notification to {self.recipient.email} - {self.message[:20]}"
