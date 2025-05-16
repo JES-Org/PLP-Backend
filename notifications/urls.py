@@ -1,8 +1,7 @@
-# urls.py
 from django.urls import path
-from .views import UnreadNotificationsAPIView, NotificationDetailAPIView
+from .views import UnreadNotificationsView, MarkNotificationAsReadView
 
 urlpatterns = [
-    path('unread/', UnreadNotificationsAPIView.as_view(), name='unread-notifications'),
-    path('<int:notification_id>/', NotificationDetailAPIView.as_view(), name='notification-detail'),
+    path('unread/', UnreadNotificationsView.as_view(), name='unread-notifications'),
+    path('<int:notification_id>/mark-read/', MarkNotificationAsReadView.as_view(), name='mark-notification-read'),
 ]
