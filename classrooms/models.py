@@ -1,7 +1,10 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from users.models import Teacher, Student
+from django.contrib.auth import get_user_model
 
+
+User = get_user_model()
 class Department(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
@@ -69,66 +72,52 @@ class Attachment(models.Model):
 
 
 class Message(models.Model):
-    content = models.TextField()
-    sender_teacher = models.ForeignKey(
-        Teacher, on_delete=models.SET_NULL, null=True, blank=True, related_name='sent_messages_as_teacher'
-    )
-    sender_student = models.ForeignKey(
-        Student, on_delete=models.SET_NULL, null=True, blank=True, related_name='sent_messages_as_student'
-    )
-    receiver_teacher = models.ForeignKey(
-        Teacher, on_delete=models.SET_NULL, null=True, blank=True, related_name='received_messages_as_teacher'
-    )
-    receiver_student = models.ForeignKey(
-        Student, on_delete=models.SET_NULL, null=True, blank=True, related_name='received_messages_as_student'
-    )
-    class_room = models.ForeignKey(
-        Classroom, on_delete=models.CASCADE, related_name='messages'
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='sent_messages',
+        null=True,
+        blank=True
 
-    @property
-    def sender(self):
-        return self.sender_teacher or self.sender_student
+    )
+    classroom = models.ForeignKey(
+        Classroom,
+        on_delete=models.CASCADE,
+        related_name='messages',
+           null=True,
+        blank=True
+    )
+    content = models.TextField(null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True, null=True,blank=True)
 
-    @property
-    def receiver(self):
-        return self.receiver_teacher or self.receiver_student
-    
     class Meta:
-        ordering = ["-created_at"]
-
-
-    def clean(self):
-        if bool(self.sender_teacher) == bool(self.sender_student):
-            raise ValidationError('Specify exactly one sender: teacher or student.')
-
-        if bool(self.receiver_teacher) == bool(self.receiver_student):
-            raise ValidationError('Specify exactly one receiver: teacher or student.')
+        ordering = ['timestamp']
+        indexes = [
+            models.Index(fields=['classroom', 'timestamp']),
+        ]
 
     def __str__(self):
-        sender_obj = self.sender
-        sender_display = "Unknown Sender"
-        if sender_obj:
-            sender_display = str(sender_obj)
+        return f"Message from {self.sender} in {self.classroom}"
 
-        receiver_obj = self.receiver
-        receiver_display = "Unknown Receiver"
-        if receiver_obj:
-            receiver_display = str(receiver_obj)
+class MessageReadStatus(models.Model):
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name='read_statuses'
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='message_read_statuses'
+    )
+    is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True)
 
-        classroom_name = (
-            self.class_room.name if self.class_room else "Unknown Classroom"
-        )
-       
-        content_preview = (
-            (self.content[:30] + "...")
-            if len(self.content) > 30
-            else self.content
-        )
+    class Meta:
+        unique_together = ('message', 'user')  
+        indexes = [
+            models.Index(fields=['user', 'is_read']),
+        ]
 
-        return (
-            f"Msg in {classroom_name} from {sender_display} to {receiver_display}: "
-            f"'{content_preview}'"
-        )
+    def __str__(self):
+        return f"{self.user} - {'Read' if self.is_read else 'Unread'}"
