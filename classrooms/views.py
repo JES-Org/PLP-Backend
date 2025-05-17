@@ -4,8 +4,8 @@ from rest_framework import status, permissions
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from utlits.utils import create_announcement_notification
-from .models import Classroom, Teacher, Student, Batch,Department, Announcement, Attachment
-from .serializers import ClassroomSerializer,DepartmentSerializer, AnnouncementSerializer, AttachmentSerializer
+from .models import Classroom, Teacher, Student, Batch,Department, Announcement, Attachment,Message
+from .serializers import ClassroomSerializer,DepartmentSerializer, AnnouncementSerializer, AttachmentSerializer,MessageSerializer
 from django.http import FileResponse
 import os
 from rest_framework.views import exception_handler
@@ -483,3 +483,31 @@ class AttachmentDeleteView(APIView):
                 "data": None,
                 "errors": [str(e)]
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)        
+        
+
+class ClassroomMessagesAPIView(APIView):
+    """
+    API endpoint to retrieve messages for a specific classroom.
+    """
+    permission_classes = [permissions.IsAuthenticated] 
+
+    def get(self, request, classroom_id, format=None):
+        try:
+            classroom = Classroom.objects.get(id=classroom_id)
+        except Classroom.DoesNotExist:
+            return Response(
+                {"error": "Classroom not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Optional: Check if the requesting user is part of this classroom
+        # This depends on how you model classroom membership (e.g., a ManyToManyField on Classroom)
+        # Example: if not classroom.participants.filter(id=request.user.id).exists():
+        #     return Response(
+        #         {"error": "You are not authorized to view messages for this classroom."},
+        #         status=status.HTTP_403_FORBIDDEN
+        #     )
+
+        messages = Message.objects.filter(classroom=classroom).order_by('timestamp').select_related('sender')
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)        
