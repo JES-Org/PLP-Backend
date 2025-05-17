@@ -21,6 +21,7 @@ AUTH_USER_MODEL = "users.User"
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -31,7 +32,9 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "rest_framework_simplejwt.token_blacklist",
-    'channels',
+    "channels",
+
+
     # Local
     "users",
     "classrooms",
@@ -124,7 +127,7 @@ CHANNEL_LAYERS = {
     },
 }
 
-ASGI_APPLICATION = "config.routing.application"
+ASGI_APPLICATION = "config.asgi.application"
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
