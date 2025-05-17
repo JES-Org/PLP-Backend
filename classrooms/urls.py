@@ -13,7 +13,8 @@ from .views import (
     AnnouncementDetailView,
     AttachmentView,
     AttachmentDownloadView,
-    AttachmentDeleteView
+    AttachmentDeleteView,
+    ClassroomMessagesAPIView
 
 
 )
@@ -36,4 +37,5 @@ urlpatterns = [
     path('<int:class_room_id>/announcements/<int:id>/attachments/<int:attachment_id>/', AttachmentDownloadView.as_view(), name='attachment-download'),
     path('announcements/attachments/<int:attachment_id>/delete/', AttachmentDeleteView.as_view(), name='attachment-delete'),
     path('<int:classroom_id>/assessment/', include('assessments.urls'), name='classroom-assessments'),
+    path('chat/<int:classroom_id>/messages/',ClassroomMessagesAPIView.as_view(),  name='classroom_messages_api'),
 ]
