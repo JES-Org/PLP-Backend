@@ -13,6 +13,7 @@ pillow = "*"
 channels = "*"
 channels-redis = "*"
 daphne = "*"
+numpy = "*"
 
 [dev-packages]
 
