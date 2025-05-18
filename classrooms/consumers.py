@@ -57,7 +57,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if self.user.role == 'teacher':
                 return classroom.teacher.user == self.user
             elif self.user.role == 'student':
-                return classroom.students.filter(user=self.user).exists()
+                return classroom.get_all_student().filter(user=self.user).exists()
             return False
         except ObjectDoesNotExist:
             return False
