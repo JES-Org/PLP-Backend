@@ -156,3 +156,26 @@ class TeacherSerializer(serializers.ModelSerializer):
         if obj.image:
             return request.build_absolute_uri(obj.image.url) if request else settings.MEDIA_URL + obj.image.url
         return None
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    firstName = serializers.SerializerMethodField()
+    lastName = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'role', 'is_active', 'is_staff', 'firstName', 'lastName']
+
+    def get_firstName(self, obj):
+        if obj.role == 'student' and hasattr(obj, 'student_profile'):
+            return obj.student_profile.first_name
+        elif obj.role == 'teacher' and hasattr(obj, 'teacher_profile'):
+            return obj.teacher_profile.first_name
+        return None
+
+    def get_lastName(self, obj):
+        if obj.role == 'student' and hasattr(obj, 'student_profile'):
+            return obj.student_profile.last_name
+        elif obj.role == 'teacher' and hasattr(obj, 'teacher_profile'):
+            return obj.teacher_profile.last_name
+        return None       
