@@ -6,10 +6,11 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 
 from django.utils import timezone
 
+from assessments.services.analytics_service import AnalyticsService
 from classrooms.models import Classroom
-from users.models import Student
+from users.models import Student, User
 from .models import Answer, Assessment, Question, Submission
-from .serializers import AssessmentSerializer, CreateQuestionSerializer, CreateSubmissionSerializer, QuestionSerializer
+from .serializers import AnalyticsSerializer, AssessmentSerializer, CreateQuestionSerializer, CreateSubmissionSerializer, QuestionSerializer
 
 class AssessmentListCreateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -178,6 +179,7 @@ class AddSubmissionView(APIView):
     def post(self, request, classroom_id):
         serializer = CreateSubmissionSerializer(data=request.data)
         if not serializer.is_valid():
+            print("Validation errors:", serializer.errors)
             return Response({
                 "isSuccess": False,
                 "message": "Submission could not be created",
@@ -187,7 +189,10 @@ class AddSubmissionView(APIView):
 
         data = serializer.validated_data
         try:
-            assessment = Assessment.objects.get(id=data["assessment_id"], classroom_id=classroom_id)
+            assessment = Assessment.objects.get(
+                id=data["assessmentId"], classroom_id=classroom_id
+            )
+            print("assessment: ", assessment)
         except Assessment.DoesNotExist:
             return Response({
                 "isSuccess": False,
@@ -199,22 +204,25 @@ class AddSubmissionView(APIView):
         if not assessment.is_published:
             return Response({
                 "isSuccess": False,
-                "message": "Submission could not be created",
+                "message": "Assessment could not be created",
                 "data": None,
                 "errors": ["Assessment is not published."]
             }, status=status.HTTP_400_BAD_REQUEST)
 
         if timezone.now() > assessment.deadline:
+            print("Assessment deadline passed")
             return Response({
                 "isSuccess": False,
-                "message": "Submission could not be created",
+                "message": "Assessment could not be created",
                 "data": None,
                 "errors": ["Assessment deadline is passed."]
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            student = Student.objects.get(id=data["student_id"])
+            student = User.objects.get(id=data["studentId"]).student_profile
+            print("student: ", student)
         except Student.DoesNotExist:
+            print("studnet not found", data["studentId"])
             return Response({
                 "isSuccess": False,
                 "message": "Submission could not be created",
@@ -222,11 +230,25 @@ class AddSubmissionView(APIView):
                 "errors": ["Student not found."]
             }, status=status.HTTP_404_NOT_FOUND)
 
+        questions = assessment.questions.all().order_by('id')
+        if len(data["answers"]) != len(questions):
+            return Response({
+                "isSuccess": False,
+                "message": "Submission could not be created",
+                "data": None,
+                "errors": ["Number of answers does not match number of questions."]
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        question_answer_map = {
+            str(question.id): answer_id
+            for question, answer_id in zip(questions, data["answers"])
+        }
+
         submission = Submission.objects.create(
             student=student,
             assessment=assessment,
-            answers=data["answers"],
-            score=0  # you can calculate score if needed
+            answers=question_answer_map,
+            score=0
         )
 
         return Response({
@@ -236,13 +258,13 @@ class AddSubmissionView(APIView):
                 "id": submission.id,
                 "student": submission.student.id,
                 "assessment": submission.assessment.id,
+                "answers": submission.answers,
                 "score": submission.score,
                 "createdAt": submission.created_at,
                 "updatedAt": submission.updated_at,
             },
             "errors": []
         }, status=status.HTTP_201_CREATED)
-
 class GetSubmissionByStudentAndAssessmentView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -273,5 +295,154 @@ class GetSubmissionByStudentAndAssessmentView(APIView):
                 "createdAt": submission.created_at,
                 "updatedAt": submission.updated_at,
             },
+            "errors": []
+        }, status=status.HTTP_200_OK)
+
+class AssessmentAnalyticsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, classroom_id, assessment_id):
+        try:
+            assessment = Assessment.objects.get(id=assessment_id, classroom_id=classroom_id)
+        except Assessment.DoesNotExist:
+            raise NotFound("Assessment not found")
+
+        data = AnalyticsService.perform_class_analysis(assessment.id)
+        if not data:
+            return Response({
+                "isSuccess": False,
+                "message": "No data available",
+                "data": None,
+                "errors": ["No submissions found for this assessment."]
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({
+            "isSuccess": True,
+            "message": "Analytics retrieved successfully",
+            "data": data,
+            "errors": []
+        }, status=status.HTTP_200_OK)
+
+
+class CrossAssessmentAnalyticsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, classroom_id):
+        data = AnalyticsService.perform_cross_assessment(classroom_id)
+        return Response({
+            "isSuccess": True,
+            "message": "Cross-assessment analytics retrieved successfully",
+            "data": data,
+            "errors": []
+        })
+
+class AssessmentAnalyticsByTagView(APIView):
+    def post(self, request, classroom_id):
+        tags = request.data
+
+        if not tags or not isinstance(tags, list):
+            return Response({
+                "isSuccess": False,
+                "message": "Tags are required",
+                "data": None,
+                "errors": ["Tags must be a non-empty list."]
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        assessments = Assessment.objects.filter(classroom_id=classroom_id)
+
+        analytics_result = []
+        for assessment in assessments:
+            if not Question.objects.filter(assessment=assessment, tags__overlap=tags).exists():
+                continue
+
+            submissions = Submission.objects.filter(assessment=assessment)
+
+            if submissions.exists():
+                scores = [s.score for s in submissions]
+                scores.sort()
+                total = len(scores)
+                mean_score = sum(scores) / total
+                median_score = scores[total // 2] if total % 2 != 0 else (scores[total//2 - 1] + scores[total//2]) / 2
+                mode_score = max(set(scores), key=scores.count) if scores else None
+
+                data = {
+                    "meanScore": mean_score,
+                    "medianScore": median_score,
+                    "modeScore": mode_score,
+                    "standardDeviation": float(Submission.objects.filter(assessment=assessment).aggregate(std=Avg("score"))["std"] or 0),
+                    "variance": float(sum((x - mean_score) ** 2 for x in scores) / total),
+                    "highestScore": max(scores),
+                    "lowestScore": min(scores),
+                    "range": max(scores) - min(scores),
+                    "totalSubmissions": total,
+                }
+
+                analytics_result.append(data)
+
+        serializer = AnalyticsSerializer(data=analytics_result, many=True)
+        serializer.is_valid(raise_exception=True)
+        return Response({
+            "isSuccess": True,
+            "message": "Analytics retrieved successfully.",
+            "data": serializer.data,
+            "errors": []
+        })
+
+class GradeStudentsView(APIView):
+    def post(self, request, classroom_id):
+        student_ids = request.data.get("studentIds", [])
+        assessment_id = request.query_params.get("assessmentId")
+
+        if not student_ids:
+            return Response({
+                "isSuccess": False,
+                "message": "Student ids are required",
+                "data": None,
+                "errors": ["studentIds must be a non-empty list."]
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not assessment_id:
+            return Response({
+                "isSuccess": False,
+                "message": "Assessment ID is required",
+                "data": None,
+                "errors": ["Missing query param: assessmentId"]
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            assessment = Assessment.objects.get(id=assessment_id, classroom_id=classroom_id)
+        except Assessment.DoesNotExist:
+            return Response({
+                "isSuccess": False,
+                "message": "Assessment not found",
+                "data": None,
+                "errors": ["Invalid assessment for this classroom."]
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        
+        updated = 0
+        for student_id in student_ids:
+            try:
+                submission = Submission.objects.get(student_id=student_id, assessment=assessment)
+            except Submission.DoesNotExist:
+                continue
+
+            correct_answers = 0
+            total_questions = assessment.questions.count()
+            answer_map = submission.answers
+
+            for question in assessment.questions.all():
+                correct = question.answers.filter(is_correct=True).first()
+                if correct and str(question.id) in answer_map and str(correct.id) == str(answer_map[str(question.id)]):
+                    correct_answers += 1
+
+            submission.score = round((correct_answers / total_questions) * 100, 2) if total_questions else 0
+            submission.save()
+            updated += 1
+
+        return Response({
+            "isSuccess": True,
+            "message": f"{updated} student(s) graded successfully.",
+            "data": True,
             "errors": []
         }, status=status.HTTP_200_OK)

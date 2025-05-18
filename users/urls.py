@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import( CustomTokenObtainPairView, GetStudentByUserIdView, 
+from .views import( CustomTokenObtainPairView, GetStudentByIdView, GetStudentByUserIdView, GetTeacherByIdView, 
                    GetTeacherByUserIdView, RegisterView, UpdateStudentProfileView, 
                    UpdateTeacherProfileView, send_otp, verify_otp,ResetPasswordView)
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -13,6 +13,8 @@ urlpatterns = [
     path("otp/verify/", verify_otp, name="verify-otp"),
     path("teacher/<str:user_id>/", GetTeacherByUserIdView.as_view(), name="get-teacher-by-user-id"),
     path("student/<str:user_id>/", GetStudentByUserIdView.as_view(), name="get-student-by-user-id"),
+    path('student-id/<str:student_id>/', GetStudentByIdView.as_view(), name='get-student-by-id'),
+    path('teacher-id/<str:teacher_id>/', GetTeacherByIdView.as_view(), name='get-teacher-by-id'),
     path('student/profile/update/', UpdateStudentProfileView.as_view(), name='update-student-profile'),
     path('teacher/profile/update/', UpdateTeacherProfileView.as_view(), name='update-teacher-profile'),
   
