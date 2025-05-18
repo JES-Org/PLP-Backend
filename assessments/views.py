@@ -6,6 +6,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 
 from django.utils import timezone
 
+from assessments.services.analytics_service import AnalyticsService
 from classrooms.models import Classroom
 from users.models import Student, User
 from .models import Answer, Assessment, Question, Submission
@@ -296,3 +297,41 @@ class GetSubmissionByStudentAndAssessmentView(APIView):
             },
             "errors": []
         }, status=status.HTTP_200_OK)
+
+class AssessmentAnalyticsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, classroom_id, assessment_id):
+        try:
+            assessment = Assessment.objects.get(id=assessment_id, classroom_id=classroom_id)
+        except Assessment.DoesNotExist:
+            raise NotFound("Assessment not found")
+
+        data = AnalyticsService.perform_class_analysis(assessment.id)
+        if not data:
+            return Response({
+                "isSuccess": False,
+                "message": "No data available",
+                "data": None,
+                "errors": ["No submissions found for this assessment."]
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({
+            "isSuccess": True,
+            "message": "Analytics retrieved successfully",
+            "data": data,
+            "errors": []
+        }, status=status.HTTP_200_OK)
+
+
+class CrossAssessmentAnalyticsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, classroom_id):
+        data = AnalyticsService.perform_cross_assessment(classroom_id)
+        return Response({
+            "isSuccess": True,
+            "message": "Cross-assessment analytics retrieved successfully",
+            "data": data,
+            "errors": []
+        })
