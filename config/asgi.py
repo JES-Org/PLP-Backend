@@ -8,8 +8,11 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from urllib.parse import parse_qs
 import os
 from channels.db import database_sync_to_async
+import forum.routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+combined_websocket_urlpatterns = classrooms.routing.websocket_urlpatterns + forum.routing.websocket_urlpatterns
+
 
 class JWTAuthMiddleware:
     """
@@ -42,9 +45,7 @@ application = ProtocolTypeRouter({
     "websocket": AllowedHostsOriginValidator(
         JWTAuthMiddleware(
             AuthMiddlewareStack(
-                URLRouter(
-                    classrooms.routing.websocket_urlpatterns
-                )
+             URLRouter(combined_websocket_urlpatterns)
             )
         )
     ),
