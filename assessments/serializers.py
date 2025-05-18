@@ -85,3 +85,14 @@ class SubmissionSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
+
+class AnalyticsSerializer(serializers.Serializer):
+    meanScore = serializers.FloatField()
+    medianScore = serializers.FloatField()
+    modeScore = serializers.FloatField(allow_null=True)
+    standardDeviation = serializers.FloatField()
+    variance = serializers.FloatField()
+    highestScore = serializers.FloatField()
+    lowestScore = serializers.FloatField()
+    range = serializers.FloatField()
+    totalSubmissions = serializers.IntegerField()
