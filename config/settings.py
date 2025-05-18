@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "chat",
     "analytics",
     "notifications",
+    "forum",
 ]
 
 REST_FRAMEWORK = {

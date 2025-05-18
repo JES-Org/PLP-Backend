@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
-from utlits.utils import create_announcement_notification
+from utlits.notification import create_announcement_notification
 from .models import Classroom, Teacher, Student, Batch,Department, Announcement, Attachment,Message
 from .serializers import ClassroomSerializer,DepartmentSerializer, AnnouncementSerializer, AttachmentSerializer,MessageSerializer
 from django.http import FileResponse
