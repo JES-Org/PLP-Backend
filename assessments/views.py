@@ -7,7 +7,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 from django.utils import timezone
 
 from classrooms.models import Classroom
-from users.models import Student
+from users.models import Student, User
 from .models import Answer, Assessment, Question, Submission
 from .serializers import AssessmentSerializer, CreateQuestionSerializer, CreateSubmissionSerializer, QuestionSerializer
 
@@ -178,6 +178,7 @@ class AddSubmissionView(APIView):
     def post(self, request, classroom_id):
         serializer = CreateSubmissionSerializer(data=request.data)
         if not serializer.is_valid():
+            print("Validation errors:", serializer.errors)
             return Response({
                 "isSuccess": False,
                 "message": "Submission could not be created",
@@ -187,7 +188,10 @@ class AddSubmissionView(APIView):
 
         data = serializer.validated_data
         try:
-            assessment = Assessment.objects.get(id=data["assessment_id"], classroom_id=classroom_id)
+            assessment = Assessment.objects.get(
+                id=data["assessmentId"], classroom_id=classroom_id
+            )
+            print("assessment: ", assessment)
         except Assessment.DoesNotExist:
             return Response({
                 "isSuccess": False,
@@ -199,22 +203,25 @@ class AddSubmissionView(APIView):
         if not assessment.is_published:
             return Response({
                 "isSuccess": False,
-                "message": "Submission could not be created",
+                "message": "Assessment could not be created",
                 "data": None,
                 "errors": ["Assessment is not published."]
             }, status=status.HTTP_400_BAD_REQUEST)
 
         if timezone.now() > assessment.deadline:
+            print("Assessment deadline passed")
             return Response({
                 "isSuccess": False,
-                "message": "Submission could not be created",
+                "message": "Assessment could not be created",
                 "data": None,
                 "errors": ["Assessment deadline is passed."]
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            student = Student.objects.get(id=data["student_id"])
+            student = User.objects.get(id=data["studentId"]).student_profile
+            print("student: ", student)
         except Student.DoesNotExist:
+            print("studnet not found", data["studentId"])
             return Response({
                 "isSuccess": False,
                 "message": "Submission could not be created",
@@ -222,11 +229,25 @@ class AddSubmissionView(APIView):
                 "errors": ["Student not found."]
             }, status=status.HTTP_404_NOT_FOUND)
 
+        questions = assessment.questions.all().order_by('id')
+        if len(data["answers"]) != len(questions):
+            return Response({
+                "isSuccess": False,
+                "message": "Submission could not be created",
+                "data": None,
+                "errors": ["Number of answers does not match number of questions."]
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        question_answer_map = {
+            str(question.id): answer_id
+            for question, answer_id in zip(questions, data["answers"])
+        }
+
         submission = Submission.objects.create(
             student=student,
             assessment=assessment,
-            answers=data["answers"],
-            score=0  # you can calculate score if needed
+            answers=question_answer_map,
+            score=0
         )
 
         return Response({
@@ -236,13 +257,13 @@ class AddSubmissionView(APIView):
                 "id": submission.id,
                 "student": submission.student.id,
                 "assessment": submission.assessment.id,
+                "answers": submission.answers,
                 "score": submission.score,
                 "createdAt": submission.created_at,
                 "updatedAt": submission.updated_at,
             },
             "errors": []
         }, status=status.HTTP_201_CREATED)
-
 class GetSubmissionByStudentAndAssessmentView(APIView):
     permission_classes = [IsAuthenticated]
 
