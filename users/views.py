@@ -276,6 +276,49 @@ class GetStudentByUserIdView(APIView):
                 "data": None,
                 "errors": [str(e)]
             }, status=status.HTTP_404_NOT_FOUND)
+
+class GetStudentByIdView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, student_id):
+        try:
+            student = Student.objects.get(id=student_id)
+            serializer = StudentSerializer(student)
+            return Response({
+                "isSuccess": True,
+                "message": "Student retrieved successfully",
+                "data": serializer.data,
+                "errors": []
+            }, status=status.HTTP_200_OK)
+        except Student.DoesNotExist:
+            return Response({
+                "isSuccess": False,
+                "message": "Student not found",
+                "data": None,
+                "errors": ["Invalid student ID."]
+            }, status=status.HTTP_404_NOT_FOUND)
+
+class GetTeacherByIdView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, teacher_id):
+        try:
+            teacher = Teacher.objects.get(id=teacher_id)
+            serializer = TeacherSerializer(teacher)
+            return Response({
+                "isSuccess": True,
+                "message": "Teacher retrieved successfully",
+                "data": serializer.data,
+                "errors": []
+            }, status=status.HTTP_200_OK)
+        except Teacher.DoesNotExist:
+            return Response({
+                "isSuccess": False,
+                "message": "Teacher not found",
+                "data": None,
+                "errors": ["Invalid teacher ID."]
+            }, status=status.HTTP_404_NOT_FOUND)
+
         
 class UpdateStudentProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = StudentSerializer
