@@ -5,7 +5,6 @@ from .models import ForumMessage
 from .serializers import ForumMessageSerializer
 from classrooms.models import Classroom
 from utlits.response import success_response, error_response
-
 class ForumMessageListCreateAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
