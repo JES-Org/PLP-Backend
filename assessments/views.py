@@ -219,7 +219,7 @@ class AddSubmissionView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            student = User.objects.get(id=data["studentId"]).student_profile
+            student = Student.objects.get(id=data["studentId"])
             print("student: ", student)
         except Student.DoesNotExist:
             print("studnet not found", data["studentId"])
