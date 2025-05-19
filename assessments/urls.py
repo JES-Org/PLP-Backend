@@ -1,11 +1,12 @@
 from django.urls import path
-from .views import AddQuestionView, AddSubmissionView, AssessmentAnalyticsByTagView, AssessmentAnalyticsView, AssessmentListCreateView, AssessmentDetailView, AssessmentPublishView, CrossAssessmentAnalyticsView, GetSubmissionByStudentAndAssessmentView, GradeStudentsView
+from .views import AddQuestionView, AddSubmissionView, AssessmentAnalyticsByTagView, AssessmentAnalyticsView, AssessmentListCreateView, AssessmentDetailView, AssessmentPublishView, CrossAssessmentAnalyticsView, DeleteQuestionView, GetSubmissionByStudentAndAssessmentView, GradeStudentsView
 
 urlpatterns = [
     path('', AssessmentListCreateView.as_view(), name='list-create-assessment'),
     path('publish/<int:id>/', AssessmentPublishView.as_view(), name='publish-assessment'),
     path('<int:id>/', AssessmentDetailView.as_view(), name='get-assessment'),
     path('add-question/', AddQuestionView.as_view(), name='add-question'),
+    path('question/<int:question_id>/', DeleteQuestionView.as_view(), name='delete-question'),
     path('add-submission/', AddSubmissionView.as_view(), name='add-submission'),
     path('submission/student/<int:student_id>/assessment/<int:assessment_id>/', GetSubmissionByStudentAndAssessmentView.as_view(), name='get-submission-by-student'),
     path('analytics/<int:assessment_id>/', AssessmentAnalyticsView.as_view(), name='single-assessment-analytics'),

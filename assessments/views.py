@@ -173,6 +173,54 @@ class AddQuestionView(APIView):
             "errors": []
         }, status=status.HTTP_201_CREATED)
 
+class DeleteQuestionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, classroom_id, question_id):
+        if request.user.role == 'student':
+            return Response({
+                "isSuccess": False,
+                "message": "Permission denied.",
+                "data": None,
+                "errors": ["Students are not allowed to delete questions."]
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            print("Deleting question with ID:", question_id, " for classroom ID:", classroom_id)
+            question = Question.objects.get(id=question_id, assessment__classroom_id=str(classroom_id))
+            print("Question found:", question)
+        except Question.DoesNotExist:
+            return Response({
+                "isSuccess": False,
+                "message": "Question not found.",
+                "data": None,
+                "errors": ["Question not found in this classroom or does not exist."]
+            }, status=status.HTTP_404_NOT_FOUND)
+        except ValueError:
+            return Response({
+                "isSuccess": False,
+                "message": "Invalid ID format.",
+                "data": None,
+                "errors": ["The provided ID for the question or classroom is not valid."]
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            question_id_to_return = question.id
+            question.delete()
+            return Response({
+                "isSuccess": True,
+                "message": "Question deleted successfully.",
+                "data": {"id": str(question_id_to_return)},
+                "errors": []
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                "isSuccess": False,
+                "message": "Failed to delete question due to a server error.",
+                "data": None,
+                "errors": [str(e)]
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class AddSubmissionView(APIView):
     permission_classes = [IsAuthenticated]
 
