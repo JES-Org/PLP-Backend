@@ -244,11 +244,18 @@ class AddSubmissionView(APIView):
             for question, answer_id in zip(questions, data["answers"])
         }
 
+        total_score = 0
+        for question in questions:
+            selected_answer_id = str(question_answer_map.get(str(question.id)))
+            correct_answer = question.answers.filter(is_correct=True).first()
+            if correct_answer and str(correct_answer.id) == selected_answer_id:
+                total_score += question.weight
+
         submission = Submission.objects.create(
             student=student,
             assessment=assessment,
             answers=question_answer_map,
-            score=0
+            score=total_score
         )
 
         return Response({
@@ -265,6 +272,7 @@ class AddSubmissionView(APIView):
             },
             "errors": []
         }, status=status.HTTP_201_CREATED)
+
 class GetSubmissionByStudentAndAssessmentView(APIView):
     permission_classes = [IsAuthenticated]
 
