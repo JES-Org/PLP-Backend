@@ -277,6 +277,19 @@ class AddSubmissionView(APIView):
                 "data": None,
                 "errors": ["Student not found."]
             }, status=status.HTTP_404_NOT_FOUND)
+        
+        existing_submission = Submission.objects.filter(
+            student=student,
+            assessment=assessment
+        ).first()
+
+        if existing_submission:
+            return Response({
+                "isSuccess": False,
+                "message": "Submission failed.",
+                "data": None,
+                "errors": ["You have already submitted this assessment."]
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         questions = assessment.questions.all().order_by('id')
         if len(data["answers"]) != len(questions):
