@@ -182,13 +182,10 @@ class ChatHistoryView(APIView):
 
     def get(self, request):
         student_id = request.query_params.get("studentId")
-
         if not student_id:
             return Response({"isSuccess": False, "error": "studentId parameter is required"}, status=400)
-
         if str(request.user.id) != student_id:
             return Response({"isSuccess": False, "error": "Unauthorized"}, status=403)
-
         history = ChatHistory.objects.filter(user=request.user).order_by("created_at")
         serializer = ChatHistorySerializer(history, many=True)
         return Response({"isSuccess": True, "chatHistory": serializer.data})
