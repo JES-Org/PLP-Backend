@@ -14,6 +14,11 @@ channels = "*"
 channels-redis = "*"
 daphne = "*"
 numpy = "*"
+langchain = "*"
+langchain-google-genai = "*"
+python-dotenv = "*"
+openai = "*"
+langchain-community = "*"
 
 [dev-packages]
 
