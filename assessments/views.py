@@ -44,6 +44,7 @@ class AssessmentListCreateView(APIView):
                 "data": serializer.data,
                 "errors": []
             }, status=status.HTTP_201_CREATED)
+        print("error",serializer.errors)
         return Response({
             "isSuccess": False,
             "message": "Assessment creation failed.",
@@ -95,10 +96,41 @@ class AssessmentPublishView(APIView):
             "errors": []
         }, status=status.HTTP_200_OK)
 
+class AssessmentUnpublishView(APIView):
+    permission_classes = [IsAuthenticated]
+    def put(self, request, classroom_id, id):
+        print("Unpublishing assessment with ID:", id, " for classroom ID:", classroom_id)
+        try:
+            assessment = Assessment.objects.get(id=id, classroom_id=int(classroom_id))
+            print("Assessment found:", assessment)
+        except Assessment.DoesNotExist:
+            return Response({
+                "isSuccess": False,
+                "message": "Assessment not found",
+                "data": None,
+                "errors": ["Assessment not found for the given classroom."]
+            }, status=status.HTTP_404_NOT_FOUND)
+        if not assessment.is_published:
+            return Response({
+                "isSuccess": False,
+                "message": "Assessment could not be unpublished",
+                "data": None,
+                "errors": ["Assessment is already unpublished."]
+            }, status=status.HTTP_400_BAD_REQUEST)
+        # Unpublish the assessment
+        assessment.is_published = False
+        assessment.save()
+        serializer = AssessmentSerializer(assessment)
+        return Response({
+            "isSuccess": True,
+            "message": "Assessment unpublished successfully.",
+            "data": serializer.data,
+            "errors": []
+        }, status=status.HTTP_200_OK)        
+
 class AssessmentDetailView(generics.RetrieveAPIView):
     serializer_class = AssessmentSerializer
     permission_classes = [IsAuthenticated]
-
     def get_object(self):
         classroom_id = self.kwargs.get("classroom_id")
         assessment_id = self.kwargs.get("id")
