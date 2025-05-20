@@ -407,7 +407,6 @@ class AssessmentAnalyticsView(APIView):
             assessment = Assessment.objects.get(id=assessment_id, classroom_id=classroom_id)
         except Assessment.DoesNotExist:
             raise NotFound("Assessment not found")
-
         data = AnalyticsService.perform_class_analysis(assessment.id)
         if not data:
             return Response({
@@ -421,6 +420,43 @@ class AssessmentAnalyticsView(APIView):
             "isSuccess": True,
             "message": "Analytics retrieved successfully",
             "data": data,
+            "errors": []
+        }, status=status.HTTP_200_OK)
+class AgregateAssessmentAnalyticsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, classroom_id):
+        assessments = Assessment.objects.filter(
+            classroom_id=classroom_id,
+            submissions__isnull=False
+        ).distinct()
+        print("Assessments with submissions:", assessments)
+
+        if not assessments.exists():
+            return Response({
+                "isSuccess": False,
+                "message": "No assessments with submissions found",
+                "data": None,
+                "errors": ["No analytics available for this classroom"]
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        analytics_data = {}
+
+        for assessment in assessments:
+            data = AnalyticsService.perform_class_analysis(assessment.id)
+            if data:
+                analytics_data[str(assessment.id)] = {
+                    "data": data
+                }
+            else:
+                analytics_data[str(assessment.id)] = {
+                    "error": "No analytics data available"
+                }
+        print("Analytics data:j", analytics_data)
+        return Response({
+            "isSuccess": True,
+            "message": "Analytics retrieved successfully",
+            "data": analytics_data,
             "errors": []
         }, status=status.HTTP_200_OK)
 
