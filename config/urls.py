@@ -10,6 +10,7 @@ urlpatterns = [
     path("api/classroom/", include("classrooms.urls")),
     path("api/notifications/", include("notifications.urls")),
     path("api/forum/", include("forum.urls")),
+    path("api/learning-path/", include("learning_path_generator.urls")),
     # path("api/", include("assessments.urls")),
 
 ]

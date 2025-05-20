@@ -13,6 +13,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: don't run with debug turned on in production!
 SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", cast=bool)
+GEMINI_KEY = config("GEMINI_KEY")
+OPENAI_API_KEY = config("OPENAI_API_KEY")
 
 ALLOWED_HOSTS = []
 
@@ -43,12 +45,17 @@ INSTALLED_APPS = [
     "analytics",
     "notifications",
     "forum",
+    "learning_path_generator",
 ]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-    )
+    ),
+     'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    
 }
 
 SIMPLE_JWT = {
@@ -89,6 +96,9 @@ TEMPLATES = [
         },
     },
 ]
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_COOKIE_SECURE = False 
+
 
 WSGI_APPLICATION = "config.wsgi.application"
 
