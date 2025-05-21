@@ -9,7 +9,8 @@ from .views import(
     GetPathsView,
     GetPathView,
     DeletePathView,
-    ChatHistoryView
+    ChatHistoryView,
+    MarkPathCompletedView,
 )
 urlpatterns = [
     path('alive/', HealthCheckView.as_view(), name='health_check'),
@@ -22,5 +23,6 @@ urlpatterns = [
     path('<str:learning_path_id>/get/', GetPathView.as_view(), name='get_path'),
     path('<str:learning_path_id>/delete/', DeletePathView.as_view(), name='delete_path'),
     path('chat-history/', ChatHistoryView.as_view(), name='get-history'),
+    path('mark-completed/<int:pk>/', MarkPathCompletedView.as_view(), name='mark_completed'),
 
 ]
