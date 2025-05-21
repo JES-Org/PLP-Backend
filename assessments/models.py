@@ -16,9 +16,20 @@ class Assessment(models.Model):
         return self.name
 
 class Question(models.Model):
+    QUESTION_TYPES = [
+        ('multiple_choice', 'Multiple Choice'),
+        ('short_answer', 'Short Answer'),
+    ]
+
     text = models.TextField()
     weight = models.FloatField(default=1.0)
     assessment = models.ForeignKey(Assessment, on_delete=models.CASCADE, related_name='questions')
+    question_type = models.CharField(
+        max_length=20,
+        choices=QUESTION_TYPES,
+        default='multiple_choice'
+    )
+    model_answer = models.TextField(blank=True, null=True)
     tags = models.JSONField(default=list, blank=True)  # List of strings
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
