@@ -387,6 +387,7 @@ class GetSubmissionByStudentAndAssessmentView(APIView):
                 assessment_id=assessment_id,
                 assessment__classroom_id=classroom_id
             )
+            print("Submission found:", submission)
         except Submission.DoesNotExist:
             return Response({
                 "isSuccess": False,
@@ -399,13 +400,13 @@ class GetSubmissionByStudentAndAssessmentView(APIView):
             "isSuccess": True,
             "message": "Submission retrieved successfully.",
             "data": {
-                "id": submission.id,
-                "student": submission.student.id,
-                "assessment": submission.assessment.id,
+                "id": str(submission.id),
+                "studentId": str(submission.student.id),
+                "assessmentId": str(submission.assessment.id),
                 "answers": submission.answers,
                 "score": submission.score,
-                "createdAt": submission.created_at,
-                "updatedAt": submission.updated_at,
+                "createdAt": submission.created_at.isoformat(),
+                "updatedAt": submission.updated_at.isoformat()
             },
             "errors": []
         }, status=status.HTTP_200_OK)
