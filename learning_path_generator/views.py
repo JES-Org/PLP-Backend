@@ -176,6 +176,19 @@ class DeletePathView(APIView):
         except Exception as e:
             return Response({"isSuccess": False, "error": str(e)}, status=500)
 
+class MarkPathCompletedView(APIView):
+    def put(self, request, pk):
+        print("incomming data", request.data)
+        student_id = request.data.get('studentId')
+        try:
+            learning_path = LearningPath.objects.get(pk=pk, student_id=student_id)
+            learning_path.isCompleted = True
+            learning_path.save()
+        except Exception as e:
+            return Response({"isSuccess": False, "error": str(e)}, status=500)
+        return Response({"isSuccess": True, "message": "Learning path delemark as completed !"})
+        
+
 
 class ChatHistoryView(APIView):
     permission_classes = [IsAuthenticated]
