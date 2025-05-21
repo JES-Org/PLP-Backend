@@ -9,4 +9,4 @@ class ChatHistorySerializer(serializers.ModelSerializer):
 class LearningPathSerializer(serializers.ModelSerializer):
     class Meta:
         model = LearningPath
-        fields = ['id', 'title', 'content', 'created_at']
+        fields = ['id', 'title', 'content','deadline', 'isCompleted','created_at']
