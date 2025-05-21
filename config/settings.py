@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     "assessments",
     "chat",
     "analytics",
-    "notifications",
+    "notifications.apps.NotificationsConfig",
     "forum",
     "learning_path_generator",
 ]

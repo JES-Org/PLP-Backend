@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
-from utlits.notification import create_announcement_notification
 from .models import Classroom, Teacher, Student, Batch,Department, Announcement, Attachment,Message
 from .serializers import ClassroomSerializer,DepartmentSerializer, AnnouncementSerializer, AttachmentSerializer,MessageSerializer
 from django.http import FileResponse
@@ -249,10 +248,6 @@ class AnnouncementListCreateView(APIView):
         serializer = AnnouncementSerializer(data=data)
         if serializer.is_valid():
             announcement = serializer.save()
-            create_announcement_notification(
-                sender=request.user,
-                announcement=announcement
-            )
             response_data = {
                 "isSuccess": True,
                 "message": "Announcement created successfully",
