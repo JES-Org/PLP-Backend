@@ -12,13 +12,22 @@ class CreateQuestionSerializer(serializers.Serializer):
     text = serializers.CharField()
     weight = serializers.FloatField()
     assessmentId = serializers.IntegerField()
+    question_type = serializers.ChoiceField(choices=Question.QUESTION_TYPES, default='multiple_choice')
     tags = serializers.ListField(child=serializers.CharField(), required=False)
-    answers = serializers.ListField(child=serializers.CharField(), min_length=2)
-    correctAnswerIndex = serializers.IntegerField()
+    model_answer = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    answers = serializers.ListField(child=serializers.CharField(max_length=255), required=False, default=[])
+    correctAnswerIndex = serializers.IntegerField(required=False, allow_null=True, min_value=-1)
 
     def validate(self, data):
-        if data['correctAnswerIndex'] >= len(data['answers']):
-            raise serializers.ValidationError("Correct answer index is out of range.")
+        if data.get('question_type') == 'multiple_choice':
+            if not data.get('answers') or len(data.get('answers')) < 2:
+                raise serializers.ValidationError({"answers": "Multiple choice questions require at least two answer options."})
+            if data.get('correctAnswerIndex') is None or data.get('correctAnswerIndex') < 0 or data.get('correctAnswerIndex') >= len(data.get('answers')):
+                raise serializers.ValidationError({"correctAnswerIndex": "A valid correct answer must be selected for multiple choice questions."})
+        elif data.get('question_type') == 'short_answer':
+            # For short answers, 'answers' and 'correctAnswerIndex' are ignored or should be empty
+            data['answers'] = []
+            data['correctAnswerIndex'] = -1 # Or None
         return data
 
 class QuestionSerializer(serializers.ModelSerializer):
@@ -33,6 +42,8 @@ class QuestionSerializer(serializers.ModelSerializer):
             'weight',
             'tags',
             'assessment',
+            'question_type',
+            'model_answer',
             'answers',
             'created_at',
             'updated_at',
@@ -60,15 +71,17 @@ class AssessmentSerializer(serializers.ModelSerializer):
 class CreateSubmissionSerializer(serializers.Serializer):
     studentId = serializers.IntegerField()
     assessmentId = serializers.IntegerField()
-    answers = serializers.ListField(
-        child=serializers.CharField(), allow_empty=False
+    answers = serializers.DictField(
+        child=serializers.CharField(allow_blank=True)
     )
 
-    def validate(self, data):
-        answers = data['answers']
-        if not isinstance(answers, list) or not all(isinstance(a, str) for a in answers):
-            raise serializers.ValidationError("Answers must be a list of answer IDs.")
-        return data
+    def validate_answers(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Answers must be a dictionary/map.")
+        for q_id, ans_text in value.items():
+            if not isinstance(ans_text, str):
+                raise serializers.ValidationError(f"Answer for question ID {q_id} must be a string.")
+        return value
 
 class SubmissionSerializer(serializers.ModelSerializer):
     student = serializers.StringRelatedField()

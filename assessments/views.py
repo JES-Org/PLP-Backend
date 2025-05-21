@@ -172,9 +172,9 @@ class AddQuestionView(APIView):
                 "errors": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        validated = serializer.validated_data
+        validated_data = serializer.validated_data
         try:
-            assessment = Assessment.objects.get(id=validated['assessmentId'], classroom_id=classroom_id)
+            assessment = Assessment.objects.get(id=validated_data['assessmentId'], classroom_id=classroom_id)
         except Assessment.DoesNotExist:
             return Response({
                 "isSuccess": False,
@@ -184,18 +184,21 @@ class AddQuestionView(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
 
         question = Question.objects.create(
-            text=validated['text'],
-            weight=validated['weight'],
+            text=validated_data['text'],
+            weight=validated_data['weight'],
             assessment=assessment,
-            tags=validated.get('tags', [])
+            tags=validated_data.get('tags', []),
+            question_type=validated_data['question_type'],
+            model_answer=validated_data.get('model_answer') if validated_data['question_type'] == 'short_answer' else None
         )
 
-        for idx, answer_text in enumerate(validated['answers']):
-            Answer.objects.create(
-                question=question,
-                text=answer_text,
-                is_correct=(idx == validated['correctAnswerIndex'])
-            )
+        if validated_data['question_type'] == 'multiple_choice':
+            for idx, answer_text in enumerate(validated_data['answers']):
+                Answer.objects.create(
+                    question=question,
+                    text=answer_text,
+                    is_correct=(idx == validated_data['correctAnswerIndex'])
+                )
 
         response_data = QuestionSerializer(question).data
         return Response({
@@ -331,23 +334,31 @@ class AddSubmissionView(APIView):
                 "data": None,
                 "errors": ["Number of answers does not match number of questions."]
             }, status=status.HTTP_400_BAD_REQUEST)
+        
 
-        question_answer_map = {
-            str(question.id): answer_id
-            for question, answer_id in zip(questions, data["answers"])
-        }
-
+        student_responses_map = data["answers"]
         total_score = 0
-        for question in questions:
-            selected_answer_id = str(question_answer_map.get(str(question.id)))
-            correct_answer = question.answers.filter(is_correct=True).first()
-            if correct_answer and str(correct_answer.id) == selected_answer_id:
-                total_score += question.weight
+
+        for question in questions: # questions = assessment.questions.all().order_by('id')
+            student_response_for_q = student_responses_map.get(str(question.id))
+
+            if not student_response_for_q:
+                # Handle case where student didn't answer this question (though frontend should prevent)
+                continue
+
+            if question.question_type == 'multiple_choice':
+                correct_answer_option = question.answers.filter(is_correct=True).first()
+                if correct_answer_option and str(correct_answer_option.id) == student_response_for_q:
+                    total_score += question.weight
+            elif question.question_type == 'short_answer':
+                # Auto-score for short answer is 0 for now.
+                # Manual grading would update this later.
+                pass # Or some partial credit for completion if desired
 
         submission = Submission.objects.create(
             student=student,
             assessment=assessment,
-            answers=question_answer_map,
+            answers=student_responses_map, # Store the map directly
             score=total_score
         )
 

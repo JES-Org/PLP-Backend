@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", cast=bool)
 GEMINI_KEY = config("GEMINI_KEY")
-OPENAI_API_KEY = config("OPENAI_API_KEY")
+# OPENAI_API_KEY = config("OPENAI_API_KEY")
 
 ALLOWED_HOSTS = []
 
