@@ -99,6 +99,29 @@ class SubmissionSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
 
+class GradeShortAnswerSerializer(serializers.Serializer):
+    question_scores = serializers.DictField(
+        child=serializers.FloatField(min_value=0)
+    )
+
+    def validate_question_scores(self, value):
+        for question_id_str, score in value.items():
+            try:
+                question = Question.objects.get(id=question_id_str)
+                if question.question_type != 'short_answer':
+                    raise serializers.ValidationError(
+                        f"Question ID {question_id_str} is not a short answer question."
+                    )
+                if score > question.weight:
+                    raise serializers.ValidationError(
+                        f"Score {score} for question ID {question_id_str} exceeds its maximum weight of {question.weight}."
+                    )
+            except Question.DoesNotExist:
+                raise serializers.ValidationError(f"Question with ID {question_id_str} not found.")
+            except ValueError:
+                raise serializers.ValidationError(f"Invalid format for question ID {question_id_str}.")
+        return value
+
 class AnalyticsSerializer(serializers.Serializer):
     meanScore = serializers.FloatField()
     medianScore = serializers.FloatField()

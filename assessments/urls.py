@@ -5,7 +5,7 @@ from .views import (AddQuestionView, AddSubmissionView, AssessmentAnalyticsByTag
                     CrossAssessmentAnalyticsView, DeleteQuestionView, 
                     GetSubmissionByStudentAndAssessmentView, 
                     GradeStudentsView,AssessmentUnpublishView,
-                    AgregateAssessmentAnalyticsView
+                    AgregateAssessmentAnalyticsView, GradeSubmissionView
                     )
 
 urlpatterns = [
@@ -17,6 +17,7 @@ urlpatterns = [
     path('question/<int:question_id>/', DeleteQuestionView.as_view(), name='delete-question'),
     path('add-submission/', AddSubmissionView.as_view(), name='add-submission'),
     path('submission/student/<int:student_id>/assessment/<int:assessment_id>/', GetSubmissionByStudentAndAssessmentView.as_view(), name='get-submission-by-student'),
+    path('<str:assessment_id>/submission/<str:submission_id>/grade/', GradeSubmissionView.as_view(), name='grade_submission'),
     path('analytics/<int:assessment_id>/', AssessmentAnalyticsView.as_view(), name='single-assessment-analytics'),
     path('analytics/cross-assessment/', CrossAssessmentAnalyticsView.as_view(), name='cross-assessment-analytics'),
     path('analytics/', AssessmentAnalyticsByTagView.as_view(), name='analytics-by-tag'),

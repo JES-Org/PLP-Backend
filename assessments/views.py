@@ -5,12 +5,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import NotFound, PermissionDenied
 
 from django.utils import timezone
+from django.db import transaction
 
 from assessments.services.analytics_service import AnalyticsService
 from classrooms.models import Classroom
 from users.models import Student, User
 from .models import Answer, Assessment, Question, Submission
-from .serializers import AnalyticsSerializer, AssessmentSerializer, CreateQuestionSerializer, CreateSubmissionSerializer, QuestionSerializer
+from .serializers import AnalyticsSerializer, AssessmentSerializer, CreateQuestionSerializer, CreateSubmissionSerializer, GradeShortAnswerSerializer, QuestionSerializer
 
 class AssessmentListCreateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -387,6 +388,7 @@ class GetSubmissionByStudentAndAssessmentView(APIView):
                 assessment_id=assessment_id,
                 assessment__classroom_id=classroom_id
             )
+            print("Submission found:", submission)
         except Submission.DoesNotExist:
             return Response({
                 "isSuccess": False,
@@ -399,13 +401,108 @@ class GetSubmissionByStudentAndAssessmentView(APIView):
             "isSuccess": True,
             "message": "Submission retrieved successfully.",
             "data": {
-                "id": submission.id,
-                "student": submission.student.id,
-                "assessment": submission.assessment.id,
+                "id": str(submission.id),
+                "studentId": str(submission.student.id),
+                "assessmentId": str(submission.assessment.id),
                 "answers": submission.answers,
                 "score": submission.score,
-                "createdAt": submission.created_at,
-                "updatedAt": submission.updated_at,
+                "graded_details": submission.graded_details,
+                "createdAt": submission.created_at.isoformat(),
+                "updatedAt": submission.updated_at.isoformat()
+            },
+            "errors": []
+        }, status=status.HTTP_200_OK)
+
+class GradeSubmissionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, classroom_id, assessment_id, submission_id):
+        if request.user.role == 'student':
+            return Response({
+                "isSuccess": False,
+                "message": "Permission Denied.",
+                "data": None,
+                "errors": ["Students cannot grade submissions."]
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            submission = Submission.objects.select_related('assessment', 'student').get(
+                id=submission_id,
+                assessment_id=assessment_id,
+                assessment__classroom_id=str(classroom_id)
+            )
+            print("Submission found:", submission)
+        except Submission.DoesNotExist:
+            return Response({
+                "isSuccess": False,
+                "message": "Submission not found.",
+                "data": None,
+                "errors": ["The specified submission does not exist for this assessment and classroom."]
+            }, status=status.HTTP_404_NOT_FOUND)
+        except ValueError:
+            return Response({
+                "isSuccess": False,
+                "message": "Invalid ID format.",
+                "data": None,
+                "errors": ["One or more provided IDs have an invalid format."]
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = GradeShortAnswerSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                "isSuccess": False,
+                "message": "Invalid grading data.",
+                "data": None,
+                "errors": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        manual_scores_input = serializer.validated_data.get('question_scores', {})
+
+        with transaction.atomic():
+            if not submission.graded_details:
+                submission.graded_details = {}
+            
+            assessment_questions = submission.assessment.questions.all()
+            question_weights = {str(q.id): q.weight for q in assessment_questions}
+
+            for q_id_str, score_val in manual_scores_input.items():
+                submission.graded_details[q_id_str] = float(score_val)
+
+            new_total_score = 0
+
+            for question in assessment_questions:
+                if question.question_type == 'multiple_choice':
+                    student_answer_id = submission.answers.get(str(question.id))
+                    correct_answer_option = question.answers.filter(is_correct=True).first()
+                    if correct_answer_option and student_answer_id == str(correct_answer_option.id):
+                        new_total_score += question.weight
+
+            for q_id_str, assigned_score in submission.graded_details.items():
+                try:
+                    q = Question.objects.get(id=q_id_str)
+                    if q.question_type == 'short_answer':
+                        if isinstance(assigned_score, (int, float)):
+                            new_total_score += assigned_score
+                except Question.DoesNotExist:
+                    pass 
+                except ValueError:
+                    pass
+
+            submission.score = new_total_score
+            submission.save()
+
+        return Response({
+            "isSuccess": True,
+            "message": "Submission grades updated successfully.",
+            "data": {
+                "id": str(submission.id),
+                "studentId": str(submission.student.id),
+                "assessmentId": str(submission.assessment.id),
+                "answers": submission.answers,
+                "score": submission.score,
+                "graded_details": submission.graded_details,
+                "createdAt": submission.created_at.isoformat(),
+                "updatedAt": submission.updated_at.isoformat(),
             },
             "errors": []
         }, status=status.HTTP_200_OK)
