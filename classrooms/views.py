@@ -96,7 +96,7 @@ class StudentClassroomView(APIView):
 
     def get(self, request, student_id):
         try:
-            classrooms = Classroom.objects.filter(batches__students__id=student_id).distinct()
+            classrooms = Classroom.objects.filter(batches__students__id=student_id,is_archived=False).distinct()
             serializer = ClassroomSerializer(classrooms, many=True)
             return Response({
                 "isSuccess": True,
@@ -506,3 +506,51 @@ class ClassroomMessagesAPIView(APIView):
         messages = Message.objects.filter(classroom=classroom).order_by('timestamp').select_related('sender')
         serializer = MessageSerializer(messages, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)        
+    
+
+class ArchiveClassroomAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        classroom = get_object_or_404(Classroom, pk=pk)
+        if classroom.is_archived:
+            return Response({
+                "isSuccess": False,
+                "message": "Classroom is already archived.",
+                "data": None,
+                "errors": []
+            }, status=status.HTTP_400_BAD_REQUEST) 
+
+        classroom.is_archived = True
+        classroom.save()
+
+        serializer = ClassroomSerializer(classroom)
+        return Response({
+            "isSuccess": True,
+            "message": "Classroom archived successfully.",
+            "data": serializer.data,
+            "errors": []
+        }, status=status.HTTP_200_OK)
+
+
+class UnarchiveClassroomAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        classroom = get_object_or_404(Classroom, pk=pk)
+        if not classroom.is_archived:
+            return Response({
+                "isSuccess": False,
+                "message": "Classroom is not archived.",
+                "data": None,
+                "errors": []
+            }, status=status.HTTP_400_BAD_REQUEST)        
+        classroom.is_archived = False
+        classroom.save()
+        serializer = ClassroomSerializer(classroom)
+        return Response({
+            "isSuccess": True,
+            "message": "Classroom archived successfully.",
+            "data": serializer.data,
+            "errors": []
+        }, status=status.HTTP_200_OK)  
