@@ -30,8 +30,8 @@ def create_classroom_notification(sender,instance,created,**kwargs):
         message=f"New classroom : {instance.name} created",
         url=f"/student/classroom/classroom-list"
           )
-    recipients = instance.get_all_student().values_list('user', flat=True)
-    notification.recipients.add(*recipients)
+        recipients = instance.get_all_student().values_list('user', flat=True)
+        notification.recipients.add(*recipients)
 @receiver(post_save, sender=Attachment)
 def create_attachment_notification(sender,instance,created,**kwargs):
     if created:

@@ -89,7 +89,7 @@ class StudentSerializer(serializers.ModelSerializer):
         fields = [
             "id", "student_id", "first_name", "last_name", "email",
             "dob", "phone", "join_date", "batch", "batch_details",
-            "department", "section", "year",  # Read-only for compatibility
+            "department", "section", "year",  
             "imageUrl", "image", "role", "is_verified",
             "created_at", "updated_at"
         ]
