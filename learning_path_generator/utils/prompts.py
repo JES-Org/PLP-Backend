@@ -19,30 +19,42 @@ DETAIL_TEMPLATE = """Now the student needs help with the topic given later speci
                 - Format the output as Markdown.
                 """
 
-GENERATE_TEMPLATE = """Now the student received your questions and answered them in the following way:\n\n
-                student answers: {student_answers}
+GENERATE_TEMPLATE = """Now the student received your questions and answered them in the following way:
 
-                Now you will generate a learning path for the student based on his preferences. 
-                
-                RULES:
-                 - Make sure the learning path fits the student's preferred time window. 
-                 - Make sure the learning path is clear and easy to follow. 
-                 - You can use bullet points to make it more readable.\n
-                 - Make sure the learning resources links work and relevant to the student's preferences.\n
+student answers: {student_answers}
 
-                Formatting rules:
-                - Format the output as Markdown.
-                - Format the output with proper bullet points if necessary.
-                - Make sure the output has the following structure.
+Now you will generate a learning path for the student based on their preferences.
 
-                
-Learning Path Title
-                    Here you should write a concise title for the learning path
-                Prerequisites
-                    Here you should list some prerequisites with the learning resources they can
-                Path
-                    The step by step learning path spanning the time window preferred by student
-                Additional Resources 
-                    List of additional resources with some description. The resources may include
-                    working links that lead to some website.
-                """
+Required Format:
+
+Prerequisites:
+[List prerequisites and required resources here with bullet points]
+
+Week 1: [Main concept title]
+Days 1-3:
+[Detailed activities and tasks for days 1-3]
+
+Days 4-7:
+[Detailed activities and tasks for days 4-7]
+
+Week 2: [Main concept title]
+Days 1-3:
+[Detailed activities and tasks for days 1-3]
+
+Days 4-7:
+[Detailed activities and tasks for days 4-7]
+
+[Continue with additional weeks as needed]
+
+Additional Resources:
+[List additional resources with descriptions and working links]
+
+RULES:
+- Make sure the learning path fits the student's preferred time window
+- Make sure the learning path is clear and easy to follow
+- Make sure the learning resources links work and are relevant to the student's preferences
+- Structure the content in weeks and days format
+- Use bullet points for lists where appropriate
+- Include specific day ranges within each week
+- Ensure all sections are properly labeled
+"""
