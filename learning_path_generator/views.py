@@ -3,13 +3,13 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-from .models import LearningPath, ChatHistory
+from .models import LearningPath, ChatHistory,Task
 from .utils.ai_utils import SessionManager
 from .utils.prompts import GREETING_PROMPT, DETAIL_TEMPLATE, GENERATE_TEMPLATE
 from langchain.prompts import ChatPromptTemplate
-from .serializers import ChatHistorySerializer, LearningPathSerializer
-
-
+from .serializers import ChatHistorySerializer,LearningPathsSerializer
+from .utils.contentParser import parse_learning_path_content
+import re
 class HealthCheckView(APIView):
     permission_classes = []
 
@@ -67,6 +67,7 @@ class DetailView(APIView):
             session = SessionManager.get_session(user_id)
             llm, _ = session["llm"]
             prompt_template = ChatPromptTemplate.from_template(DETAIL_TEMPLATE)
+            #insert the student prompt into the placeholder.
             cooked_prompt = prompt_template.format_messages(student_prompt=student_prompt)
             response = llm.predict(input=cooked_prompt[0].content)
 
@@ -109,40 +110,91 @@ class GeneratePathView(APIView):
             return Response({"isSuccess": True, "aiResponse": response})
         except Exception as e:
             return Response({"isSuccess": False, "error": str(e)}, status=500)
+# Add this debugging function to your view
+def print_content_sections(content):
+    print("\n=== Content Analysis ===")
+    
+    # Find all week matches
+    week_matches = re.finditer(r'\*\*Week (\d+):[^*]+\*\*\s*\*\*?Goal:\*\*?\s*([^*]+)(?=\*\*Week \d+:|Additional Resources|\Z)', content, re.DOTALL)
+    
+    print("\nFound Week Sections:")
+    for week_match in week_matches:
+        week_num = week_match.group(1)
+        week_content = week_match.group(2).strip()
+        print(f"\nWeek {week_num}:")
+        print(f"Content preview: {week_content[:100]}...")
 
 class SavePathView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        print("incomming data", request.data)
         try:
             title = request.data.get("learningPathTitle")
-            last_response = ChatHistory.objects.filter(user=request.user, is_ai_response=True).order_by('-created_at').first()
-            print("last response", last_response)
-
-
+            deadline=request.data.get("deadline")
+            last_response = ChatHistory.objects.filter(
+                user=request.user, 
+                is_ai_response=True
+            ).order_by('-created_at').first()
+            
             if not last_response:
-                return Response({"isSuccess": False, "error": "No chat history to save"}, status=400)
+                return Response({
+                    "isSuccess": False, 
+                    "error": "No chat history to save"
+                }, status=400)
 
-            LearningPath.objects.create(
+            # Debug print
+            print("\n=== Original Content ===")
+            print(last_response.message[:500])
+            print_content_sections(last_response.message)
+            
+            # Parse content
+            tasks = parse_learning_path_content(last_response.message)
+            
+            print(f"\n=== Parsed {len(tasks)} Tasks ===")
+            for task in tasks:
+                print(f"\nCategory: {task['category']}")
+                print(f"Title: {task['title']}")
+                print(f"Week Number: {task.get('week_number')}")
+                print(f"Description preview: {task['description'][:100]}...")
+
+            # Create learning path
+            learning_path = LearningPath.objects.create(
                 student=request.user,
                 title=title,
-                content=last_response.message
+                deadline=deadline
             )
 
-            return Response({"isSuccess": True, "aiResponse": "Your learning path is saved, Be sure to follow it!"})
+            # Create tasks
+            created_tasks = []
+            for task_data in tasks:
+                task = Task.objects.create(
+                    learning_path=learning_path,
+                    title=task_data['title'],
+                    description=task_data['description'],
+                    category=task_data['category'],
+                    week_number=task_data.get('week_number'),
+                    order=task_data['order']
+                )
+                created_tasks.append(task)
+
+            return Response({
+                "isSuccess": True, 
+                "message": f"Learning path created successfully with {len(created_tasks)} tasks",
+                "taskCount": len(created_tasks)
+            })
+            
         except Exception as e:
             print(f"Error in SavePathView: {e}")
+            import traceback
+            traceback.print_exc()
             return Response({"isSuccess": False, "error": str(e)}, status=500)
-
-
 class GetPathsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         try:
             paths = LearningPath.objects.filter(student=request.user)
-            serializer = LearningPathSerializer(paths, many=True)
+            serializer = LearningPathsSerializer(paths, many=True)
             return Response({"isSuccess": True, "learningPaths": serializer.data})
         except Exception as e:
             return Response({"isSuccess": False, "error": str(e)}, status=500)
@@ -168,9 +220,9 @@ class GetPathView(APIView):
 class DeletePathView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def delete(self, request, pk):
+    def delete(self, request, learning_path_id):
         try:
-            path = get_object_or_404(LearningPath, id=pk, student=request.user)
+            path = get_object_or_404(LearningPath, id=learning_path_id, student=request.user)
             path.delete()
             return Response({"isSuccess": True, "aiResponse": "Learning path deleted!"})
         except Exception as e:
@@ -202,3 +254,30 @@ class ChatHistoryView(APIView):
         history = ChatHistory.objects.filter(user=request.user).order_by("created_at")
         serializer = ChatHistorySerializer(history, many=True)
         return Response({"isSuccess": True, "chatHistory": serializer.data})
+
+
+
+
+class ToggleTaskCompletionView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        task_id = request.data.get('taskId')
+        task = get_object_or_404(Task, id=task_id)
+
+        # Ensure the user owns the learning path
+        if task.learning_path.student != request.user:
+            return Response({'detail': 'Not authorized.'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Toggle the completion state
+        task.is_completed = not task.is_completed
+        task.save()
+
+        return Response({
+            'isSuccess': True,
+            'task': {
+                'id': task.id,
+                'title': task.title,
+                'is_completed': task.is_completed,
+            }
+        }, status=status.HTTP_200_OK)

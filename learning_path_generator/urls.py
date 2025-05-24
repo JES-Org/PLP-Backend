@@ -11,6 +11,7 @@ from .views import(
     DeletePathView,
     ChatHistoryView,
     MarkPathCompletedView,
+    ToggleTaskCompletionView,
 )
 urlpatterns = [
     path('alive/', HealthCheckView.as_view(), name='health_check'),
@@ -24,5 +25,7 @@ urlpatterns = [
     path('<str:learning_path_id>/delete/', DeletePathView.as_view(), name='delete_path'),
     path('chat-history/', ChatHistoryView.as_view(), name='get-history'),
     path('mark-completed/<int:pk>/', MarkPathCompletedView.as_view(), name='mark_completed'),
+    path('learning-path/toggle-task/', ToggleTaskCompletionView.as_view(), name='toggle-task'),
+
 
 ]
