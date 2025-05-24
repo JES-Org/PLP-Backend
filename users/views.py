@@ -9,6 +9,7 @@ import logging
 import random
 
 from .models import User, Student, Teacher, Otp
+from .utils import send_otp_email
 from .serializers import (
     TeacherSerializer,
     StudentSerializer,
@@ -137,10 +138,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 def send_otp(request):
     try:
         email = request.data.get("email")
-        # user_id = request.data.get("userId")
-        # role_num = request.data.get("role")
-
-        # role = ROLE_REVERSE_MAP.get(role_num)
+        user_name = "User"
 
         user = User.objects.get(email=email)
 
@@ -149,6 +147,16 @@ def send_otp(request):
 
         # TODO: send this via actual email; for now just print/log
         print(f"[OTP] Code for {user.email}: {otp_code}")
+        if not send_otp_email(user.email, otp_code, user_name):
+            return Response(
+                {
+                    "isSuccess": False,
+                    "message": "Failed to send OTP email",
+                    "data": None,
+                    "errors": ["Failed to send OTP email"],
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         return Response(
             {
