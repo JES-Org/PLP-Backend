@@ -15,6 +15,7 @@ class UserAdmin(BaseUserAdmin):
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser")}),
         ("Groups", {"fields": ("groups", "user_permissions")}),
     )
+    list_per_page=25
 
 
 admin.site.register(User, UserAdmin)

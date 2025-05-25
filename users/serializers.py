@@ -88,7 +88,7 @@ class StudentSerializer(serializers.ModelSerializer):
         model = Student
         fields = [
             "id", "student_id", "first_name", "last_name", "email",
-            "dob", "phone", "join_date", "batch", "batch_details",
+            "dob", "phone", "batch", "batch_details",
             "department", "section", "year",  
             "imageUrl", "image", "role", "is_verified",
             "created_at", "updated_at"
@@ -138,7 +138,6 @@ class TeacherSerializer(serializers.ModelSerializer):
             "email",
             "dob",
             "phone",
-            "join_date",
             "department",
             "imageUrl",
             'image',
