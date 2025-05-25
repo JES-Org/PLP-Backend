@@ -356,7 +356,6 @@ class UpdateStudentProfileView(generics.RetrieveUpdateAPIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = self.get_serializer(instance, data=request_data, partial=True)
-        
         if serializer.is_valid():
             self.perform_update(serializer)
             return Response({
