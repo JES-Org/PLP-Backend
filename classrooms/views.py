@@ -229,7 +229,7 @@ class AnnouncementListCreateView(APIView):
 
     def get(self, request, class_room_id):
         classroom = get_object_or_404(Classroom, id=class_room_id)
-        announcements = Announcement.objects.filter(class_room=classroom).order_by('-created_at')
+        announcements = Announcement.objects.filter(class_room=classroom).order_by('created_at')
         serializer = AnnouncementSerializer(announcements, many=True)
         
         response_data = {
@@ -481,9 +481,7 @@ class AttachmentDeleteView(APIView):
         
 
 class ClassroomMessagesAPIView(APIView):
-    """
-    API endpoint to retrieve messages for a specific classroom.
-    """
+  
     permission_classes = [permissions.IsAuthenticated] 
 
     def get(self, request, classroom_id, format=None):
@@ -494,14 +492,6 @@ class ClassroomMessagesAPIView(APIView):
                 {"error": "Classroom not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
-
-        # Optional: Check if the requesting user is part of this classroom
-        # This depends on how you model classroom membership (e.g., a ManyToManyField on Classroom)
-        # Example: if not classroom.participants.filter(id=request.user.id).exists():
-        #     return Response(
-        #         {"error": "You are not authorized to view messages for this classroom."},
-        #         status=status.HTTP_403_FORBIDDEN
-        #     )
 
         messages = Message.objects.filter(classroom=classroom).order_by('timestamp').select_related('sender')
         serializer = MessageSerializer(messages, many=True)
