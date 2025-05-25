@@ -58,7 +58,6 @@ class Teacher(models.Model):
     dob = models.DateField(null=True, blank=True)
     phone = models.CharField(max_length=20)
     department = models.CharField(max_length=100)
-    join_date = models.DateField(auto_now_add=True)
     image = models.ImageField(upload_to="avatars/", null=True, blank=True)
     is_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -69,6 +68,18 @@ class Teacher(models.Model):
 
 
 class Student(models.Model):
+    ACADEMIC_STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('deferred', 'Deferred'),
+        ('readmitted', 'Readmitted'),
+        ('graduated', 'Graduated'),
+        ('dropped', 'Dropped Out'),
+    ]
+    academic_status = models.CharField(
+        max_length=20,
+        choices=ACADEMIC_STATUS_CHOICES,
+        default='active',
+    )
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="student_profile"
     )
@@ -84,7 +95,6 @@ class Student(models.Model):
         blank=True,
         related_name='students'
     )    
-    join_date = models.DateField(auto_now_add=True)
     image = models.ImageField(upload_to="avatars/", null=True, blank=True)
     is_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
