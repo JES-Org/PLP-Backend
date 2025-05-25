@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import Classroom,Department,Batch,Announcement,Attachment
-
+admin.site.index_title = "Welcome to Your Project Dashboard"
 
 @admin.register(Classroom)
 class ClassroomAdmin(admin.ModelAdmin):
@@ -16,21 +16,40 @@ class ClassroomAdmin(admin.ModelAdmin):
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'description')
+    list_display = ('name', 'created_at', 'updated_at')
     search_fields = ('name',)
-    ordering = ('-id',)
-    list_per_page = 10
-    list_display_links = ('id', 'name')
-
+    ordering = ('name',)
+    list_per_page = 25
 
 
 @admin.register(Batch)
 class BatchAdmin(admin.ModelAdmin):
-    list_display = ('id', 'section', 'year', 'department')
-    search_fields = ('section',)
-    ordering = ('-id',)
-    list_per_page = 10
-    list_display_links = ('id', 'section')
+    list_display = ('department', 'year', 'section')
+    list_filter = ('department', 'year')
+    search_fields = ('section', 'department__name')
+    autocomplete_fields = ['department']
+    ordering = ('-year', 'department', 'section')
+    list_per_page = 25
+    actions = ['duplicate_batch']
+
+    def duplicate_batch(self, request, queryset):
+        count = 0
+        for batch in queryset:
+            new_year = batch.year + 1
+            if not Batch.objects.filter(
+                section=batch.section,
+                year=new_year,
+                department=batch.department
+            ).exists():
+                Batch.objects.create(
+                    section=batch.section,
+                    year=new_year,
+                    department=batch.department
+                )
+                count += 1
+        self.message_user(request, f"✅ {count} batch(es) duplicated to the next academic year.")
+    
+    duplicate_batch.short_description = "➕ Duplicate selected batches to next year"
 
 
 @admin.register(Announcement)

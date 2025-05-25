@@ -13,8 +13,6 @@ class Department(models.Model):
     created_at = models.DateTimeField(auto_now_add=True,blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-
-
     def __str__(self):
         return self.name
 
@@ -25,7 +23,6 @@ class Batch(models.Model):
 
     class Meta:
         unique_together = ('section', 'year', 'department')
-
     def __str__(self):
         return f"{self.department.name}-{self.year}-{self.section}"
 
