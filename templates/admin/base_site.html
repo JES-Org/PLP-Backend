@@ -1,0 +1,12 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}CustomEd {% endblock %}
+
+{% block branding %}
+  <h1 id="site-name"><a href="{% url 'admin:index' %}">CustomEd Admin </a></h1>
+{% endblock %}
+
+
+{% block content_title %}
+  <h2>{{ site.index_title|default:_("CustomEd administration") }}</h2>
+{% endblock %}

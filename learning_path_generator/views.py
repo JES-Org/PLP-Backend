@@ -110,19 +110,7 @@ class GeneratePathView(APIView):
             return Response({"isSuccess": True, "aiResponse": response})
         except Exception as e:
             return Response({"isSuccess": False, "error": str(e)}, status=500)
-# Add this debugging function to your view
-def print_content_sections(content):
-    print("\n=== Content Analysis ===")
-    
-    # Find all week matches
-    week_matches = re.finditer(r'\*\*Week (\d+):[^*]+\*\*\s*\*\*?Goal:\*\*?\s*([^*]+)(?=\*\*Week \d+:|Additional Resources|\Z)', content, re.DOTALL)
-    
-    print("\nFound Week Sections:")
-    for week_match in week_matches:
-        week_num = week_match.group(1)
-        week_content = week_match.group(2).strip()
-        print(f"\nWeek {week_num}:")
-        print(f"Content preview: {week_content[:100]}...")
+
 
 class SavePathView(APIView):
     permission_classes = [IsAuthenticated]
@@ -142,20 +130,7 @@ class SavePathView(APIView):
                     "error": "No chat history to save"
                 }, status=400)
 
-            # Debug print
-            print("\n=== Original Content ===")
-            print(last_response.message[:500])
-            print_content_sections(last_response.message)
-            
-            # Parse content
             tasks = parse_learning_path_content(last_response.message)
-            
-            print(f"\n=== Parsed {len(tasks)} Tasks ===")
-            for task in tasks:
-                print(f"\nCategory: {task['category']}")
-                print(f"Title: {task['title']}")
-                print(f"Week Number: {task.get('week_number')}")
-                print(f"Description preview: {task['description'][:100]}...")
 
             # Create learning path
             learning_path = LearningPath.objects.create(
