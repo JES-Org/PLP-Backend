@@ -515,3 +515,18 @@ class ResetPasswordView(APIView):
             return Response({'message': 'Password reset successful'}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({'detail': 'User with this email not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+class DeleteAccountView(APIView):
+    permission_classes = [IsAuthenticated]
+    def delete(self, request):
+        user = request.user
+        user.delete()
+        return Response(
+            {
+                "isSuccess": True,
+                "message": "Account deleted successfully.",
+                "data": None,
+                "errors": [],
+            },
+            status=status.HTTP_200_OK,
+            )       

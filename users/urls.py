@@ -2,7 +2,7 @@ from django.urls import path
 
 from .views import( CustomTokenObtainPairView, GetStudentByIdView, GetStudentByUserIdView, GetTeacherByIdView, 
                    GetTeacherByUserIdView, RegisterView, UpdateStudentProfileView, 
-                   UpdateTeacherProfileView, send_otp, verify_otp,ResetPasswordView)
+                   UpdateTeacherProfileView, send_otp, verify_otp,ResetPasswordView,DeleteAccountView)
 from rest_framework_simplejwt.views import TokenRefreshView
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
@@ -17,5 +17,5 @@ urlpatterns = [
     path('teacher-id/<str:teacher_id>/', GetTeacherByIdView.as_view(), name='get-teacher-by-id'),
     path('student/profile/update/', UpdateStudentProfileView.as_view(), name='update-student-profile'),
     path('teacher/profile/update/', UpdateTeacherProfileView.as_view(), name='update-teacher-profile'),
-  
+    path('delete-account/', DeleteAccountView.as_view(), name='delete-account'),
 ]
