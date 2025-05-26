@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.exceptions import AuthenticationFailed
 
 from django.contrib.auth import authenticate
 
@@ -68,6 +69,40 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         token["role"] = ROLE_MAP.get(user.role, -1)
         return token
+    
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        user = self.user
+        profile_is_verified = False
+        profile_exists = False
+
+        if user.role == "student":
+            if hasattr(user, 'student_profile'):
+                profile_exists = True
+                profile_is_verified = user.student_profile.is_verified
+            else:
+                print(f"Warning: Student user {user.email} has no student_profile during login.")
+        elif user.role == "teacher":
+            if hasattr(user, 'teacher_profile'):
+                profile_exists = True
+                profile_is_verified = user.teacher_profile.is_verified
+            else:
+                print(f"Warning: Teacher user {user.email} has no teacher_profile during login.")
+
+        if not profile_exists and user.role in ["student", "teacher"]:
+            raise AuthenticationFailed(
+                detail='User profile not found. Please contact support.',
+                code='profile_missing'
+            )
+
+        if not profile_is_verified:
+            raise AuthenticationFailed(
+                detail='Account not verified. Please check your email for OTP and verify your account.',
+                code='account_not_verified'
+            )
+
+        return data
 
 class StudentSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source='user.email', required=False)
