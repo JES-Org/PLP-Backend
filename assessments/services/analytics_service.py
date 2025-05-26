@@ -6,11 +6,14 @@ class AnalyticsService:
     @staticmethod
     def perform_class_analysis(assessment_id):
         submissions = Submission.objects.filter(assessment_id=assessment_id)
+        assessment = Assessment.objects.get(id=assessment_id)
         scores = [s.score for s in submissions]
         if not scores:
             return None
 
         return {
+            "title": assessment.name,
+            "description": assessment.description,
             "meanScore": np.mean(scores),
             "medianScore": np.median(scores),
             "modeScore": AnalyticsService.get_mode(scores),
