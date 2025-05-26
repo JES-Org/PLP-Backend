@@ -6,6 +6,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import AuthenticationFailed, TokenError
+
 import logging
 import random
 from django.contrib.auth import get_user_model
@@ -87,6 +89,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
     def post(self, request, *args, **kwargs):
         try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
             response = super().post(request, *args, **kwargs)
             email = request.data.get("email")
             role = request.data.get("role")
@@ -125,17 +129,34 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 },
                 status=status.HTTP_200_OK,
             )
+        
+        except TokenError as e:
+            return Response({
+                "isSuccess": False,
+                "message": "Token generation error.",
+                "data": None,
+                "errors": [str(e)],
+            }, status=status.HTTP_400_BAD_REQUEST)
 
+        except AuthenticationFailed as e:
+            error_detail = e.detail
+            error_message = str(error_detail.get('detail')) if isinstance(error_detail, dict) else str(error_detail)
+            error_code = e.get_codes()
+            
+            return Response({
+                "isSuccess": False,
+                "message": error_message,
+                "data": None,
+                "errors": [error_code] if isinstance(error_code, str) else error_code,
+            }, status=e.status_code)
+            
         except Exception as e:
-            return Response(
-                {
-                    "isSuccess": False,
-                    "message": "Login failed",
-                    "data": None,
-                    "errors": [str(e)],
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({
+                "isSuccess": False,
+                "message": "Invalid credentials",
+                "data": None,
+                "errors": [str(e)],
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(["POST"])
