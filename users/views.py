@@ -89,19 +89,18 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         try:
             response = super().post(request, *args, **kwargs)
             email = request.data.get("email")
-            role = request.data.get("role")
-            user = User.objects.get(email=email, role=role)
+            user = User.objects.get(email=email,)
 
             teacher_data = None
             student_data = None
 
-            if role == "teacher":
+            if user.role == "teacher":
                 try:
                     teacher = user.teacher_profile
                     teacher_data = TeacherSerializer(teacher).data
                 except Teacher.DoesNotExist:
                     teacher_data = None
-            elif role == "student":
+            elif user.role == "student":
                 try:
                     student = user.student_profile
                     student_data = StudentSerializer(student).data
