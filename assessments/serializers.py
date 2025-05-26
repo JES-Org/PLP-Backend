@@ -123,6 +123,8 @@ class GradeShortAnswerSerializer(serializers.Serializer):
         return value
 
 class AnalyticsSerializer(serializers.Serializer):
+    title = serializers.CharField()
+    description = serializers.CharField()
     meanScore = serializers.FloatField()
     medianScore = serializers.FloatField()
     modeScore = serializers.FloatField(allow_null=True)
