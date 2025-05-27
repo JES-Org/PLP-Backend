@@ -3,8 +3,10 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
-from .models import Classroom, Teacher, Student, Batch,Department, Announcement, Attachment,Message
-from .serializers import ClassroomSerializer,DepartmentSerializer, AnnouncementSerializer, AttachmentSerializer,MessageSerializer
+from .models import( Classroom, Faculty, Student, Batch,Department, Announcement, Attachment)
+from .serializers import (ClassroomSerializer,DepartmentSerializer,
+                           AnnouncementSerializer,
+                           AttachmentSerializer,FacultySerializer)
 from django.http import FileResponse
 import os
 from rest_framework.views import exception_handler
@@ -70,6 +72,18 @@ class ClassroomView(APIView):
         classroom.delete()
         # Optionally publish event here
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class FacultyListAPIView(APIView):
+    def get(self, request):
+        faculties = Faculty.objects.all()
+        serializer = FacultySerializer(faculties, many=True)
+        response_data = {
+            "isSuccess": True,
+            "message": "Faculties retrieved successfully",
+            "data": serializer.data,
+            "errors": None
+        }
+        return Response(response_data, status=status.HTTP_200_OK)    
 
 class TeacherClassroomView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -159,16 +173,11 @@ class SearchClassroomView(APIView):
 class AddStudentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
-        print(request.data)
         rqbatch = request.data.get('batch')
         batch = Batch.objects.filter(year=rqbatch['year'], section=rqbatch['section'], department=rqbatch['department']).first()
-        print(batch)
         students = Student.objects.filter(batch=batch)
-        print(students)
         classroom_id = request.data.get('classRoomId')
-        print(classroom_id)
         classroom = get_object_or_404(Classroom, id=classroom_id)
-        print(classroom)
         
         for student in students:
             classroom.students.add(student)
@@ -458,23 +467,7 @@ class AttachmentDeleteView(APIView):
                 "errors": [str(e)]
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)        
         
-
-class ClassroomMessagesAPIView(APIView):
-  
-    permission_classes = [permissions.IsAuthenticated] 
-
-    def get(self, request, classroom_id, format=None):
-        try:
-            classroom = Classroom.objects.get(id=classroom_id)
-        except Classroom.DoesNotExist:
-            return Response(
-                {"error": "Classroom not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        messages = Message.objects.filter(classroom=classroom).order_by('timestamp').select_related('sender')
-        serializer = MessageSerializer(messages, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)        
+      
     
 
 class ArchiveClassroomAPIView(APIView):
