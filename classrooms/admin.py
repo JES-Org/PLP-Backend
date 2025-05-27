@@ -2,7 +2,12 @@ from django.contrib import admin
 from .models import Classroom,Department,Batch,Announcement,Attachment,Faculty
 admin.site.index_title = "Welcome to Your Project Dashboard"
 
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+from django.contrib.auth.models import User, Group, Permission
 
+admin.site.unregister(Group)
+admin.site.unregister(BlacklistedToken)
+admin.site.unregister(OutstandingToken)
 
 @admin.register(Classroom)
 class ClassroomAdmin(admin.ModelAdmin):
@@ -54,20 +59,20 @@ class BatchAdmin(admin.ModelAdmin):
     duplicate_batch.short_description = "➕ Duplicate selected batches to next year"
 
 
-@admin.register(Announcement)
-class AnnouncementAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title','content','class_room', 'created_at')
-    search_fields = ('title',)
-    ordering = ('-id',)
-    list_per_page = 10
-    list_display_links = ('id', 'title')
+# @admin.register(Announcement)
+# class AnnouncementAdmin(admin.ModelAdmin):
+#     list_display = ('id', 'title','content','class_room', 'created_at')
+#     search_fields = ('title',)
+#     ordering = ('-id',)
+#     list_per_page = 10
+#     list_display_links = ('id', 'title')
 
-@admin.register(Attachment)
-class AttachmentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'file', 'announcement', 'created_at')
-    search_fields = ('file',)
-    ordering = ('-id',)
-    list_display_links = ('id', 'file')
+# @admin.register(Attachment)
+# class AttachmentAdmin(admin.ModelAdmin):
+#     list_display = ('id', 'file', 'announcement', 'created_at')
+#     search_fields = ('file',)
+#     ordering = ('-id',)
+#     list_display_links = ('id', 'file')
 
 
 
