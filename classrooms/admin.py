@@ -1,6 +1,8 @@
 from django.contrib import admin
-from .models import Classroom,Department,Batch,Announcement,Attachment
+from .models import Classroom,Department,Batch,Announcement,Attachment,Faculty
 admin.site.index_title = "Welcome to Your Project Dashboard"
+
+
 
 @admin.register(Classroom)
 class ClassroomAdmin(admin.ModelAdmin):
@@ -67,5 +69,11 @@ class AttachmentAdmin(admin.ModelAdmin):
     ordering = ('-id',)
     list_display_links = ('id', 'file')
 
+
+
+
+@admin.register(Faculty)
+class FuclityAdmin(admin.ModelAdmin):
+      list_display =('id','name')
 
 

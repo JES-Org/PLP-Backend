@@ -7,9 +7,15 @@ from .models import (
     Announcement,
     Attachment,
     Message,
+    Faculty,
 )
 from users.models import Teacher, Student,User
 
+
+class FacultySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Faculty
+        fields = "__all__"
 class DepartmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Department
@@ -28,7 +34,7 @@ class TeacherInlineSerializer(serializers.ModelSerializer):
             "full_name",
             "first_name",
             "last_name",
-            "department",
+            "faculty",
         ]
         read_only_fields = ["first_name", "last_name"]
 
@@ -180,134 +186,6 @@ class AnnouncementSerializer(serializers.ModelSerializer):
         return ClassroomSerializer(obj.class_room).data
 
 
-# class MessageParticipantSerializer(serializers.Serializer):
-#     id = serializers.IntegerField(read_only=True)
-#     type = serializers.CharField(read_only=True) # 'teacher' or 'student'
-#     full_name = serializers.CharField(read_only=True)
-#     email = serializers.EmailField(read_only=True)
-
-#     def to_representation(self, instance):
-#         if isinstance(instance, Teacher):
-#             return {
-#                 "id": instance.id,
-#                 "type": "teacher",
-#                 "full_name": f"{instance.first_name} {instance.last_name}",
-#                 "email": instance.user.email,
-#             }
-#         elif isinstance(instance, Student):
-#             return {
-#                 "id": instance.id,
-#                 "type": "student",
-#                 "full_name": f"{instance.first_name} {instance.last_name}",
-#                 "email": instance.user.email,
-#             }
-#         return None
-
-
-# class MessageSerializer(serializers.ModelSerializer):
-#     sender_teacher = serializers.PrimaryKeyRelatedField(
-#         queryset=Teacher.objects.all(),
-#         required=False,
-#         allow_null=True,
-#         write_only=True,
-#     )
-#     sender_student = serializers.PrimaryKeyRelatedField(
-#         queryset=Student.objects.all(),
-#         required=False,
-#         allow_null=True,
-#         write_only=True,
-#     )
-#     receiver_teacher = serializers.PrimaryKeyRelatedField(
-#         queryset=Teacher.objects.all(),
-#         required=False,
-#         allow_null=True,
-#         write_only=True,
-#     )
-#     receiver_student = serializers.PrimaryKeyRelatedField(
-#         queryset=Student.objects.all(),
-#         required=False,
-#         allow_null=True,
-#         write_only=True,
-#     )
-
-#     sender = MessageParticipantSerializer(read_only=True)
-#     receiver = MessageParticipantSerializer(read_only=True)
-
-#     class_room = serializers.PrimaryKeyRelatedField(
-#         queryset=Classroom.objects.all()
-#     )
-#     class_room_details = ClassroomSerializer(
-#         source="class_room", read_only=True
-#     )
-
-#     created_at = serializers.DateTimeField(read_only=True)
-#     updated_at = serializers.DateTimeField(read_only=True)
-
-#     class Meta:
-#         model = Message
-#         fields = [
-#             "id",
-#             "content",
-#             "class_room",
-#             "class_room_details",
-#             "sender_teacher",
-#             "sender_student",
-#             "receiver_teacher",
-#             "receiver_student",
-#             "sender",
-#             "receiver",
-#             "created_at",
-#             "updated_at",
-#         ]
-
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         if hasattr(self, "fields") and "class_room_details" in self.fields:
-#             self.fields["class_room"].write_only = True
-
-
-#     def validate(self, data):
-#         instance = self.instance
-
-#         final_sender_teacher = data.get('sender_teacher', getattr(instance, 'sender_teacher', None))
-#         if 'sender_teacher' in data:
-#             final_sender_teacher = data['sender_teacher']
-
-#         final_sender_student = data.get('sender_student', getattr(instance, 'sender_student', None))
-#         if 'sender_student' in data:
-#             final_sender_student = data['sender_student']
-
-#         if bool(final_sender_teacher) == bool(final_sender_student):
-#             error_msg = "Specify exactly one sender (teacher or student)."
-#             if not final_sender_teacher and not final_sender_student:
-#                 error_msg = "A sender (teacher or student) must be specified."
-           
-#             raise serializers.ValidationError({
-#                 "sender_teacher": error_msg,
-#                 "sender_student": error_msg,
-#             })
-
-#         final_receiver_teacher = data.get('receiver_teacher', getattr(instance, 'receiver_teacher', None))
-#         if 'receiver_teacher' in data:
-#             final_receiver_teacher = data['receiver_teacher']
-
-#         final_receiver_student = data.get('receiver_student', getattr(instance, 'receiver_student', None))
-#         if 'receiver_student' in data:
-#             final_receiver_student = data['receiver_student']
-
-#         if bool(final_receiver_teacher) == bool(final_receiver_student):
-#             error_msg = "Specify exactly one receiver (teacher or student)."
-#             if not final_receiver_teacher and not final_receiver_student:
-#                 error_msg = "A receiver (teacher or student) must be specified."
-#             raise serializers.ValidationError({
-#                 "receiver_teacher": error_msg,
-#                 "receiver_student": error_msg,
-#             })
-
-#         return data
-
-
-
 class MessageSenderSerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()
 
@@ -330,20 +208,17 @@ class MessageSenderSerializer(serializers.ModelSerializer):
         return user_obj.email # Fallback or primary if no role/profile
 
 class MessageSerializer(serializers.ModelSerializer):
-    # sender = MessageSenderSerializer(read_only=True) # Option 1: Nested Sender Info
     sender_id = serializers.IntegerField(source='sender.id', read_only=True)
     sender_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Message
         fields = ['id', 'content', 'sender_id', 'sender_name', 'timestamp']
-        # If using Option 1 for sender:
-        # fields = ['id', 'content', 'sender', 'timestamp']
+    
 
     def get_sender_name(self, message_obj):
         user_obj = message_obj.sender
-        # Logic to get display name (similar to your consumer)
-        # Ensure your User model has a 'role' attribute or adapt this logic
+       
         if hasattr(user_obj, 'role'):
             if user_obj.role == 'teacher':
                 teacher = Teacher.objects.filter(user=user_obj).first()
