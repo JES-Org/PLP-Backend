@@ -364,7 +364,6 @@ class AttachmentDownloadView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request, class_room_id, id, attachment_id):
         try:
-            # Get the attachment
             announcement = get_object_or_404(Announcement, id=id, class_room_id=class_room_id)
             attachment = get_object_or_404(Attachment, id=attachment_id, announcement=announcement)
 
@@ -376,38 +375,24 @@ class AttachmentDownloadView(APIView):
                     "errors": ["File not found"]
                 }, status=status.HTTP_404_NOT_FOUND)
 
-            # Get the actual file object
             file_obj = attachment.file
-            print(f"Original storage path: {file_obj.name}")  # Debug log
-
-            # Safely extract filename with multiple fallbacks
             original_filename = "attachment"
             if file_obj.name:
-                # Try to get the filename from the path
                 try:
                     original_filename = os.path.basename(file_obj.name)
                 except:
                     pass
 
-                # If we got a path but no extension, try to find one
                 if '.' not in original_filename:
                     try:
-                        # For some storage backends, the name might include query params
                         original_filename = file_obj.name.split('?')[0].split('/')[-1]
                     except:
                         pass
 
-            # If we still don't have a proper filename, use a default with ID
             if not original_filename or '.' not in original_filename:
                 original_filename = f"attachment_{attachment.id}"
-
-            # Get the file extension
             file_extension = os.path.splitext(original_filename)[1].lower()
-
-            # Determine MIME type
             mime_type = mimetypes.guess_type(original_filename)[0] or 'application/octet-stream'
-
-            # Special handling for common file types
             if file_extension == '.jpg' or file_extension == '.jpeg':
                 mime_type = 'image/jpeg'
             elif file_extension == '.png':
@@ -419,7 +404,6 @@ class AttachmentDownloadView(APIView):
             elif file_extension == '.xlsx':
                 mime_type = 'application/vndxmlformats-officedocument.spreadsheetml.sheet'
 
-            # Open the file
             try:
                 file = file_obj.open('rb')
             except Exception as e:
@@ -430,7 +414,6 @@ class AttachmentDownloadView(APIView):
                     "errors": [str(e)]
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            # Create response
             response = FileResponse(file, content_type=mime_type)
             response['Content-Disposition'] = f'attachment; filename="{original_filename}"'
             response['Content-Length'] = file_obj.size
@@ -452,16 +435,12 @@ class AttachmentDeleteView(APIView):
 
     def delete(self, request, attachment_id):
         try:
-     
-            # Verify the attachment exists and belongs to the announcement
             attachment = get_object_or_404(
                 Attachment, 
                 id=attachment_id
             )
             
-            # Delete the file from storage
             attachment.file.delete(save=False)
-            # Delete the database record
             attachment.delete()
             
             return Response({
@@ -544,3 +523,68 @@ class UnarchiveClassroomAPIView(APIView):
             "data": serializer.data,
             "errors": []
         }, status=status.HTTP_200_OK)  
+
+
+
+class RemoveStudentFromClassroomAPIView(APIView):
+    def post(self, request, classroom_id, student_id):
+        try:
+            classroom = Classroom.objects.get(id=classroom_id)
+            student = Student.objects.get(id=student_id)
+            if student.batch not in classroom.batches.all():
+                return Response(
+                    {
+                        "isSuccess": False,
+                        "message": "Student is not in this classroom.",
+                        "data": None,
+                        "errors": ["The student does not belong to any batch of this classroom."],
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            student.batch = None
+            student.save()
+            return Response(
+                {
+                    "isSuccess": True,
+                    "message": "Student removed from classroom successfully.",
+                    "data": {
+                        "student_id": student.id,
+                        "full_name": f"{student.first_name} {student.last_name}",
+                        "batch": None,
+                    },
+                    "errors": None,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Classroom.DoesNotExist:
+            return Response(
+                {
+                    "isSuccess": False,
+                    "message": "Classroom not found.",
+                    "data": None,
+                    "errors": [f"No classroom with ID {classroom_id} was found."],
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Student.DoesNotExist:
+            return Response(
+                {
+                    "isSuccess": False,
+                    "message": "Student not found.",
+                    "data": None,
+                    "errors": [f"No student with ID {student_id} was found."],
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            return Response(
+                {
+                    "isSuccess": False,
+                    "message": "An unexpected error occurred while removing the student.",
+                    "data": None,
+                    "errors": [str(e) or "An internal server error occurred."],
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )        

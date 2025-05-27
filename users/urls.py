@@ -2,7 +2,8 @@ from django.urls import path
 
 from .views import( CustomTokenObtainPairView, GetStudentByIdView, GetStudentByUserIdView, GetTeacherByIdView, 
                    GetTeacherByUserIdView, RegisterView, UpdateStudentProfileView, 
-                   UpdateTeacherProfileView, send_otp, verify_otp,ResetPasswordView,DeleteAccountView)
+                   UpdateTeacherProfileView, send_otp, verify_otp,ResetPasswordView,DeleteAccountView,
+                   )
 from rest_framework_simplejwt.views import TokenRefreshView
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),

@@ -43,8 +43,8 @@ def create_attachment_notification(sender,instance,created,**kwargs):
         message=f"New Attachment in {announcement.title} is added",
         url=f"/student/classroom/{classroom.id}/announcement"
           )
-    recipients = classroom.get_all_student().values_list('user', flat=True)
-    notification.recipients.add(*recipients)
+        recipients = classroom.get_all_student().values_list('user', flat=True)
+        notification.recipients.add(*recipients)
 @receiver(post_save, sender=Assessment)
 def notify_on_assessment_publish(sender, instance, created, **kwargs):
     if created and instance.is_published:
@@ -84,7 +84,6 @@ def notify_teacher_on_submission(sender, instance, created, **kwargs):
             url=f"/teacher/classroom/{classroom.id}/assessment"
         )
         notification.recipients.add(teacher_user)
-
 
 @receiver(post_save, sender=ForumMessage)
 def notify_classroom_on_forum_message(sender, instance, created, **kwargs):

@@ -4,7 +4,7 @@ admin.site.index_title = "Welcome to Your Project Dashboard"
 
 @admin.register(Classroom)
 class ClassroomAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'teacher', 'description', 'courseNo',"get_batches")
+    list_display = ('id', 'name', 'teacher', 'courseNo',"get_batches")
     search_fields = ('name',)
     ordering = ('-id',)
     list_per_page = 10

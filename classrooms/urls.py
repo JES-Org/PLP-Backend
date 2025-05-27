@@ -16,7 +16,8 @@ from .views import (
     AttachmentDeleteView,
     ClassroomMessagesAPIView,
     ArchiveClassroomAPIView,
-    UnarchiveClassroomAPIView
+    UnarchiveClassroomAPIView,
+    RemoveStudentFromClassroomAPIView
 
 
 )
@@ -42,4 +43,5 @@ urlpatterns = [
     path('chat/<int:classroom_id>/messages/',ClassroomMessagesAPIView.as_view(),  name='classroom_messages_api'),
     path('<int:pk>/archive/', ArchiveClassroomAPIView.as_view(), name='classroom-archive'),
     path('<int:pk>/unarchive/', UnarchiveClassroomAPIView.as_view(), name='classroom-unarchive'),
+    path('remove-student/<int:classroom_id>/<int:student_id>/', RemoveStudentFromClassroomAPIView.as_view(), name='remove-student'),
 ]
