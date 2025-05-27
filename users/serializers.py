@@ -72,7 +72,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     
     def validate(self, attrs):
         data = super().validate(attrs)
-
         user = self.user
         profile_is_verified = False
         profile_exists = False
@@ -173,7 +172,7 @@ class TeacherSerializer(serializers.ModelSerializer):
             "email",
             "dob",
             "phone",
-            "department",
+            "faculty",
             "imageUrl",
             'image',
             "role",

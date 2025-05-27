@@ -52,6 +52,9 @@ class RegisterView(generics.CreateAPIView):
         try:
             serializer.is_valid(raise_exception=True)
             user = serializer.save()
+            if user.role == "teacher":
+                user.is_staff = True
+                user.save()
             tokens = get_tokens_for_user(user)
 
             data = {
@@ -83,7 +86,6 @@ class RegisterView(generics.CreateAPIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
@@ -92,43 +94,37 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             response = super().post(request, *args, **kwargs)
+
             email = request.data.get("email")
-            user = User.objects.get(email=email,)
+            user = User.objects.get(email=email)
 
             teacher_data = None
             student_data = None
 
             if user.role == "teacher":
-                try:
-                    teacher = user.teacher_profile
-                    teacher_data = TeacherSerializer(teacher).data
-                except Teacher.DoesNotExist:
-                    teacher_data = None
+                if hasattr(user, "teacher_profile"):
+                    print("from teacher",hasattr(user, "teacher_profile"))
+                    teacher_data = TeacherSerializer(user.teacher_profile).data
+              
             elif user.role == "student":
-                try:
-                    student = user.student_profile
-                    student_data = StudentSerializer(student).data
-                except Student.DoesNotExist:
-                    student_data = None
-
-            return Response(
-                {
-                    "isSuccess": True,
-                    "message": "Login successful",
-                    "data": {
-                        "id": str(user.id),
-                        "email": user.email,
-                        "role": ROLE_MAP.get(user.role, -1),
-                        "token": response.data.get("access"),
-                        "refresh": response.data.get("refresh"),
-                        "teacher": teacher_data,
-                        "student": student_data,
-                    },
-                    "errors": [],
+                if hasattr(user, "student_profile"):
+                    student_data = StudentSerializer(user.student_profile).data
+               
+            return Response({
+                "isSuccess": True,
+                "message": "Login successful",
+                "data": {
+                    "id": str(user.id),
+                    "email": user.email,
+                    "role": ROLE_MAP.get(user.role, -1),
+                    "token": response.data.get("access"),
+                    "refresh": response.data.get("refresh"),
+                    "teacher": teacher_data,
+                    "student": student_data,
                 },
-                status=status.HTTP_200_OK,
-            )
-        
+                "errors": [],
+            }, status=status.HTTP_200_OK)
+
         except TokenError as e:
             return Response({
                 "isSuccess": False,
@@ -141,14 +137,13 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             error_detail = e.detail
             error_message = str(error_detail.get('detail')) if isinstance(error_detail, dict) else str(error_detail)
             error_code = e.get_codes()
-            
             return Response({
                 "isSuccess": False,
                 "message": error_message,
                 "data": None,
                 "errors": [error_code] if isinstance(error_code, str) else error_code,
             }, status=e.status_code)
-            
+
         except Exception as e:
             return Response({
                 "isSuccess": False,
@@ -156,8 +151,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 "data": None,
                 "errors": [str(e)],
             }, status=status.HTTP_400_BAD_REQUEST)
-
-
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def send_otp(request):
@@ -201,6 +194,7 @@ def send_otp(request):
 
     try:
         otp_code = str(random.randint(100000, 999999))
+        print("otp",otp_code)
         expires_at = timezone.now() + timedelta(minutes=10)
         
         Otp.objects.filter(user=user).delete()
@@ -502,12 +496,9 @@ class UpdateTeacherProfileView(generics.RetrieveUpdateAPIView):
         return self.request.user.teacher_profile
     
     def update(self, request, *args, **kwargs):
-        print("🟢 Incoming data:", request.data)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
-
         if not serializer.is_valid():
-            print("🔴 Serializer errors:", serializer.errors)
             return Response({
                     "isSuccess": False,
                     "message": "Teacher not found",
