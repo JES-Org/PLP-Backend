@@ -57,7 +57,7 @@ class Teacher(models.Model):
     last_name = models.CharField(max_length=100)
     dob = models.DateField(null=True, blank=True)
     phone = models.CharField(max_length=20)
-    department = models.CharField(max_length=100)
+    faculty = models.CharField(max_length=100)
     image = models.ImageField(upload_to="avatars/", null=True, blank=True)
     is_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

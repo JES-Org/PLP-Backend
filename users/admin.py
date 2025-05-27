@@ -21,8 +21,8 @@ class UserAdmin(BaseUserAdmin):
 admin.site.register(User, UserAdmin)
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
-    list_display = ('first_name', 'last_name', 'phone', 'department', 'is_verified', 'created_at')
-    list_filter = ('department', 'is_verified', 'created_at')
+    list_display = ('first_name', 'last_name', 'phone', 'faculty', 'is_verified', 'created_at')
+    list_filter = ('faculty', 'is_verified', 'created_at')
     search_fields = ('first_name', 'last_name', 'phone', 'user__username')
     autocomplete_fields = ['user']
     readonly_fields = ('created_at', 'updated_at')
