@@ -15,7 +15,7 @@ DEBUG = config("DEBUG", cast=bool)
 GEMINI_KEY = config("GEMINI_KEY")
 # OPENAI_API_KEY = config("OPENAI_API_KEY")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 AUTH_USER_MODEL = "users.User"
 
