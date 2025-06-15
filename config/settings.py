@@ -17,7 +17,7 @@ GEMINI_KEY = config("GEMINI_KEY")
 
 ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = [
-    'plp-backend-production.up.railway.app',
+    'https://plp-backend-production.up.railway.app/',
 ]
 
 AUTH_USER_MODEL = "users.User"
