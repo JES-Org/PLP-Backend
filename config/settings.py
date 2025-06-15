@@ -16,6 +16,9 @@ GEMINI_KEY = config("GEMINI_KEY")
 # OPENAI_API_KEY = config("OPENAI_API_KEY")
 
 ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = [
+    'plp-backend-production.up.railway.app',
+]
 
 AUTH_USER_MODEL = "users.User"
 
