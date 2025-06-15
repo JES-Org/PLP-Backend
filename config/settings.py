@@ -1,6 +1,5 @@
 from pathlib import Path
 from datetime import timedelta
-
 from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -76,7 +75,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # React dev server
+    "http://localhost:3000", 
     "http://127.0.0.1:3000",
 ]
 

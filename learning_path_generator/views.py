@@ -46,7 +46,6 @@ class GreetView(APIView):
             return Response({"isSuccess": True, "aiResponse": greeting_response})
         
         except Exception as e:
-            print(f"Error in GreetView: {e}")
 
             return Response({"isSuccess": False, "error": str(e)}, status=500)
 
@@ -159,7 +158,7 @@ class SavePathView(APIView):
             })
             
         except Exception as e:
-            print(f"Error in SavePathView: {e}")
+
             import traceback
             traceback.print_exc()
             return Response({"isSuccess": False, "error": str(e)}, status=500)
@@ -205,7 +204,6 @@ class DeletePathView(APIView):
 
 class MarkPathCompletedView(APIView):
     def put(self, request, pk):
-        print("incomming data", request.data)
         student_id = request.data.get('studentId')
         try:
             learning_path = LearningPath.objects.get(pk=pk, student_id=student_id)
