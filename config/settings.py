@@ -15,9 +15,17 @@ DEBUG = config("DEBUG", cast=bool)
 GEMINI_KEY = config("GEMINI_KEY")
 # OPENAI_API_KEY = config("OPENAI_API_KEY")
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'plp-backend-production.up.railway.app', 
+    'localhost',
+    '127.0.0.1'
+]
 CSRF_TRUSTED_ORIGINS = [
-    'https://plp-backend-production.up.railway.app/',
+    'https://plp-backend-production.up.railway.app',
+]
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000", 
+    "http://127.0.0.1:3000",
 ]
 
 AUTH_USER_MODEL = "users.User"
@@ -77,10 +85,6 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000", 
-    "http://127.0.0.1:3000",
-]
 
 ROOT_URLCONF = "config.urls"
 
