@@ -10,6 +10,8 @@ from forum.models import ForumMessage
 User = get_user_model()
 @receiver(post_save, sender=Announcement)
 def create_announcement_notification(sender, instance, created, **kwargs):
+    if kwargs.get('raw', False):
+       return
     if created:
         classroom=instance.class_room
         sender_user=classroom.teacher.user
@@ -23,6 +25,8 @@ def create_announcement_notification(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Classroom)
 def create_classroom_notification(sender,instance,created,**kwargs):
+    if kwargs.get('raw', False):
+       return
     if created:
         sender_user=instance.teacher.user
         notification = Notification.objects.create(
@@ -34,6 +38,8 @@ def create_classroom_notification(sender,instance,created,**kwargs):
         notification.recipients.add(*recipients)
 @receiver(post_save, sender=Attachment)
 def create_attachment_notification(sender,instance,created,**kwargs):
+    if kwargs.get('raw', False):
+       return
     if created:
         announcement=instance.announcement
         classroom=announcement.class_room
@@ -47,6 +53,8 @@ def create_attachment_notification(sender,instance,created,**kwargs):
         notification.recipients.add(*recipients)
 @receiver(post_save, sender=Assessment)
 def notify_on_assessment_publish(sender, instance, created, **kwargs):
+    if kwargs.get('raw', False):
+       return
     if created and instance.is_published:
         classroom = instance.classroom
         sender_user = classroom.teacher.user
@@ -73,6 +81,8 @@ def notify_on_assessment_publish(sender, instance, created, **kwargs):
             notification.recipients.add(*recipients)
 @receiver(post_save, sender=Submission)
 def notify_teacher_on_submission(sender, instance, created, **kwargs):
+    if kwargs.get('raw', False):
+       return
     if created:
         assessment = instance.assessment
         classroom = assessment.classroom
@@ -87,6 +97,8 @@ def notify_teacher_on_submission(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=ForumMessage)
 def notify_classroom_on_forum_message(sender, instance, created, **kwargs):
+    if kwargs.get('raw', False):
+       return
     if not created:
         return 
     classroom = instance.classroom
