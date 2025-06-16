@@ -19,18 +19,21 @@ GEMINI_KEY = config("GEMINI_KEY")
 
 ALLOWED_HOSTS = [
     'plp-backend-production.up.railway.app', 
+    'sem2-plp-frontend-production.up.railway.app',
     'localhost',
     '127.0.0.1'
 ]
 CSRF_TRUSTED_ORIGINS = [
     'https://plp-backend-production.up.railway.app',
         "http://localhost:3000", 
+        'https://sem2-plp-frontend-production.up.railway.app',
         
 
 ]
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000", 
     "http://127.0.0.1:3000",
+    'https://sem2-plp-frontend-production.up.railway.app',
 ]
 
 AUTH_USER_MODEL = "users.User"
