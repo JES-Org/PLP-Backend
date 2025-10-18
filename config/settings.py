@@ -20,7 +20,7 @@ GEMINI_KEY = config("GEMINI_KEY")
 ALLOWED_HOSTS = [
     'plp-backend-production.up.railway.app', 
     'sem2-plp-frontend-production.up.railway.app',
-   ' plp-backend-c969.onrender.com',
+     'plp-backend-c969.onrender.com',
     'localhost',
     '127.0.0.1'
 ]
